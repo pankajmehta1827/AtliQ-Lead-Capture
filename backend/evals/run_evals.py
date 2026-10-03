@@ -40,6 +40,7 @@ def main() -> None:
     match_ok = wrong_merge = matched_total = 0
     dropped = needs_review = drafts = 0
     rows = []
+    errors: list[tuple[str, str]] = []
     with SessionLocal() as db:
         import_crm_csv(db)
         codes = {d.id: d.lead_code for d in db.query(Deal).all()}
@@ -47,7 +48,14 @@ def main() -> None:
             path = ROOT / "data" / ref
             channel = "meeting" if ref.startswith("meeting") else "email"
             item = parse_markdown_item(path.read_text(encoding="utf-8"), ref, channel)
-            state = run_capture(db, item, "eval")
+            try:
+                state = run_capture(db, item, "eval")
+            except Exception as exc:  # count as a miss, keep evaluating
+                db.rollback()
+                errors.append((ref, f"{type(exc).__name__}: {str(exc)[:160]}"))
+                rows.append((ref, expected, "ERROR", "MISS"))
+                fn += expected != "not_sales"
+                continue
             is_sales_pred = not state.get("skipped")
             is_sales_true = expected != "not_sales"
             tp += is_sales_pred and is_sales_true
@@ -79,6 +87,9 @@ def main() -> None:
     print("Record matching   accuracy ", pct(match_ok, matched_total), f" wrong merges: {wrong_merge} (target >= 95%, 0)")
     print(f"Groundedness      {dropped} field value(s) dropped for missing evidence across {drafts} drafts")
     print("Needs review rate", pct(needs_review, drafts))
+    print(f"Errors            {len(errors)}")
+    for ref, err in errors:
+        print(f"  {ref}: {err}")
 
 
 if __name__ == "__main__":

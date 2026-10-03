@@ -59,9 +59,10 @@ class Extraction(BaseModel):
     stage: Field_ = Field(description="Deal stage: New, Contacted, Proposal Sent, Won or Lost.")
     next_step: Field_ = Field(description="The agreed or obviously required next action for AtliQ.")
     next_step_date: Field_ = Field(description="ISO date YYYY-MM-DD for the next step, if one is stated or implied.")
-    summary: list[SummarySentence] = Field(description="3-5 plain sentences: what was discussed and agreed.")
-    followups: list[FollowUp] = Field(default_factory=list, description="Commitments, revisit dates, unanswered requests.")
-    new_needs: list[NewNeed] = Field(default_factory=list, description="Additional needs the client mentioned beyond the main topic.")
+    # Lists are nullable: models sometimes send null for "none", which Groq would otherwise reject.
+    summary: list[SummarySentence] | None = Field(default=None, description="3-5 plain sentences: what was discussed and agreed.")
+    followups: list[FollowUp] | None = Field(default=None, description="Commitments, revisit dates, unanswered requests. Use [] if none.")
+    new_needs: list[NewNeed] | None = Field(default=None, description="Additional needs the client mentioned beyond the main topic. Use [] if none.")
 
 
 class CrossSellIdea(BaseModel):
@@ -71,4 +72,4 @@ class CrossSellIdea(BaseModel):
 
 
 class CrossSell(BaseModel):
-    ideas: list[CrossSellIdea] = Field(default_factory=list)
+    ideas: list[CrossSellIdea] | None = None

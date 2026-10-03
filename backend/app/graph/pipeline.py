@@ -167,6 +167,8 @@ def extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
                 "crm_context": crm_context,
             }
         ).model_dump()
+        for key in ("summary", "followups", "new_needs"):
+            result[key] = result.get(key) or []
     else:
         result = heuristics.extract(
             {**item, "body": state["masked_body"]}, pre[0] if pre else None, s.today(), s.internal_domain
@@ -338,7 +340,7 @@ def crosssell(state: CaptureState, config: RunnableConfig) -> CaptureState:
     allowed = set(service_names())
     ideas = [
         i.model_dump()
-        for i in result.ideas
+        for i in (result.ideas or [])
         if i.service in allowed and evidence_in_source(i.evidence, convo + "\n" + history)
     ]
     return {"crosssell": ideas, "trace": _trace(state, f"cross-sell: {len(ideas)} idea(s)")}
