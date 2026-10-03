@@ -71,7 +71,7 @@ def _external_emails(item: dict) -> list[str]:
 
 def _conversation_text(item: dict, body: str) -> str:
     header = f"Channel: {item.get('channel')}\nDate: {item.get('occurred_at')}\nSubject: {item.get('subject')}\n"
-    return header + "\n" + body[:12000]
+    return header + "\n" + body[:6000]  # keeps a call well inside small tokens-per-minute tiers
 
 
 # ---------------------------------------------------------------- nodes
@@ -125,6 +125,7 @@ def classify(state: CaptureState, config: RunnableConfig) -> CaptureState:
                 "internal_domain": prompt_constants()["internal_domain"],
             }
         ).model_dump()
+        result["confidence"] = min(1.0, max(0.0, float(result["confidence"])))
         mode = "llm"
     else:
         result = heuristics.classify({**item, "body": state["masked_body"]}, bool(pre), all_internal)
@@ -169,6 +170,9 @@ def extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
         ).model_dump()
         for key in ("summary", "followups", "new_needs"):
             result[key] = result.get(key) or []
+        for val in result.values():
+            if isinstance(val, dict) and "confidence" in val:
+                val["confidence"] = min(1.0, max(0.0, float(val["confidence"] or 0)))
     else:
         result = heuristics.extract(
             {**item, "body": state["masked_body"]}, pre[0] if pre else None, s.today(), s.internal_domain

@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,12 +45,22 @@ def main() -> None:
     with SessionLocal() as db:
         import_crm_csv(db)
         codes = {d.id: d.lead_code for d in db.query(Deal).all()}
-        for ref, expected in labels.items():
+        limit = int(sys.argv[1]) if len(sys.argv) > 1 else None
+        for ref, expected in list(labels.items())[:limit]:
             path = ROOT / "data" / ref
             channel = "meeting" if ref.startswith("meeting") else "email"
             item = parse_markdown_item(path.read_text(encoding="utf-8"), ref, channel)
             try:
-                state = run_capture(db, item, "eval")
+                for attempt in range(8):
+                    try:
+                        state = run_capture(db, item, "eval")
+                        break
+                    except Exception as exc:
+                        if "rate limit" not in str(exc).lower() or attempt == 7:
+                            raise
+                        db.rollback()
+                        print(f"  rate limited, waiting 30s ({ref})", flush=True)
+                        time.sleep(30)
             except Exception as exc:  # count as a miss, keep evaluating
                 db.rollback()
                 errors.append((ref, f"{type(exc).__name__}: {str(exc)[:160]}"))

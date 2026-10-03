@@ -52,30 +52,44 @@ def _model():
     from langchain_groq import ChatGroq
 
     s = get_settings()
+    extra = {"reasoning_effort": "low"} if _is_gpt_oss() else {}
     return ChatGroq(
         model=s.groq_model,
         api_key=s.groq_api_key,
         temperature=s.llm_temperature,
-        max_retries=3,
-        timeout=60,
+        max_retries=2,
+        timeout=90,
+        **extra,
     )
+
+
+def _is_gpt_oss() -> bool:
+    return get_settings().groq_model.startswith("openai/gpt-oss")
+
+
+def _structured(schema):
+    # gpt-oss on Groq supports strict JSON-schema (constrained decoding): output always matches the schema.
+    # Its tool calling is unreliable (skipped calls, schema mismatches), so we avoid it for these models.
+    if _is_gpt_oss():
+        return _model().with_structured_output(schema, method="json_schema", strict=True)
+    return _model().with_structured_output(schema)
 
 
 def classify_chain():
     prompt = ChatPromptTemplate.from_messages([("system", CLASSIFY_SYSTEM), ("human", "{conversation}")])
-    return prompt | _model().with_structured_output(Classification)
+    return prompt | _structured(Classification)
 
 
 def extract_chain():
     prompt = ChatPromptTemplate.from_messages([("system", EXTRACT_SYSTEM), ("human", "{conversation}")])
-    return prompt | _model().with_structured_output(Extraction)
+    return prompt | _structured(Extraction)
 
 
 def crosssell_chain():
     prompt = ChatPromptTemplate.from_messages(
         [("system", CROSSSELL_SYSTEM), ("human", "Latest conversation:\n{conversation}")]
     )
-    return prompt | _model().with_structured_output(CrossSell)
+    return prompt | _structured(CrossSell)
 
 
 def prompt_constants() -> dict[str, str]:

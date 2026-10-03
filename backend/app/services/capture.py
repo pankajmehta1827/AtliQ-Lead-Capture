@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
+import time
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -88,6 +90,23 @@ def _crosssell_ideas(state: dict) -> list[dict]:
     ]
 
 
+RATE_LIMIT_BACKOFF_SECONDS = 30
+_backoff_until = 0.0
+
+
+def _retry_after_seconds(message: str) -> float:
+    """Groq says e.g. 'Please try again in 2m38.97s'. Wait that long (min 30s, max 1h)."""
+    m = re.search(r"try again in (?:(\d+)h)?(?:(\d+)m(?!s))?(?:([\d.]+)s)?", message)
+    if not m or not any(m.groups()):
+        return RATE_LIMIT_BACKOFF_SECONDS
+    h, mi, sec = (float(g) if g else 0.0 for g in m.groups())
+    return min(3600.0, max(RATE_LIMIT_BACKOFF_SECONDS, h * 3600 + mi * 60 + sec + 1))
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    return type(exc).__name__ == "RateLimitError" or "rate limit" in str(exc).lower()
+
+
 def process_item(db: Session, item_id: int) -> str:
     s = get_settings()
     si = db.get(SourceItem, item_id)
@@ -105,6 +124,16 @@ def process_item(db: Session, item_id: int) -> str:
         db.rollback()
         si = db.get(SourceItem, item_id)
         si.last_error = f"{type(exc).__name__}: {exc}"[:2000]
+        if _is_rate_limit(exc):
+            # Provider quota, not a bad item: requeue without spending a retry and pause the worker.
+            si.attempts -= 1
+            si.status = "queued"
+            global _backoff_until
+            delay = _retry_after_seconds(str(exc))
+            _backoff_until = time.monotonic() + delay
+            db.commit()
+            log.info("rate limited on item %s; backing off %.0fs", item_id, delay)
+            return "rate_limited"
         si.status = "failed" if si.attempts >= s.max_retries else "queued"
         log_action(
             db, actor="assistant", action="processing_error", outcome=si.status, entity_type="source_item",
@@ -177,24 +206,35 @@ def process_pending(db: Session, limit: int = 20) -> dict[str, int]:
     for item_id in ids:
         outcome = process_item(db, item_id)
         counts[outcome] = counts.get(outcome, 0) + 1
+        if outcome == "rate_limited":
+            break
     return counts
+
+
+async def _sleep(stop: asyncio.Event, seconds: float) -> None:
+    try:
+        await asyncio.wait_for(stop.wait(), timeout=seconds)
+    except asyncio.TimeoutError:
+        pass
 
 
 async def worker_loop(stop: asyncio.Event) -> None:
     s = get_settings()
-    while not stop.is_set():
-        try:
-            def _run() -> dict[str, int]:
-                with SessionLocal() as db:
-                    return process_pending(db, limit=5)
 
+    def _run() -> dict[str, int]:
+        with SessionLocal() as db:
+            return process_pending(db, limit=5)
+
+    while not stop.is_set():
+        wait = _backoff_until - time.monotonic()
+        if wait > 0:
+            await _sleep(stop, wait)
+            continue
+        try:
             counts = await asyncio.to_thread(_run)
-            if counts:
+            if counts and "rate_limited" not in counts:
                 log.info("worker processed %s", counts)
                 continue  # more may be waiting
         except Exception:  # pragma: no cover - keep the worker alive
             log.exception("worker loop error")
-        try:
-            await asyncio.wait_for(stop.wait(), timeout=s.worker_poll_seconds)
-        except asyncio.TimeoutError:
-            pass
+        await _sleep(stop, s.worker_poll_seconds)
