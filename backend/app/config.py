@@ -1,0 +1,68 @@
+"""Runtime configuration, read from environment variables (.env locally, Railway variables in prod)."""
+from __future__ import annotations
+
+from datetime import date
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # Database. Railway injects DATABASE_URL as postgresql://...; we normalise it for psycopg 3.
+    database_url: str = "postgresql+psycopg://atliq:atliq@localhost:5432/atliq"
+
+    # LLM (Groq via LangChain). If no key is set the pipeline runs in a rule-based offline mode.
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+    llm_temperature: float = 0.0
+
+    # Domain settings
+    internal_domain: str = "atliq.com"
+    sellers: str = "Bhavin,Dhaval,Karandeep,Jay"  # users who own deals
+    inactive_days: int = 14  # FR-7 / dashboard flag
+    proposal_unanswered_days: int = 7  # reminder trigger
+    confidence_threshold: float = 0.7  # below this a draft is marked "needs review"
+
+    # Optional fixed "today" so the synthetic dataset (dated July 2026) behaves realistically.
+    reference_date: date | None = None
+
+    # Background worker + scheduler
+    worker_poll_seconds: int = 5
+    reminder_scan_minutes: int = 30
+    max_retries: int = 3
+
+    # Kill switch (PRD rollout section): when false, nothing new is processed.
+    processing_enabled: bool = True
+
+    # Simple shared access code for the hosted demo. Empty = no login required.
+    app_access_code: str = ""
+
+    seed_on_startup: bool = True
+    cors_origins: str = "http://localhost:5173"
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://"):]
+        if url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://"):]
+        return url
+
+    @property
+    def seller_list(self) -> list[str]:
+        return [s.strip() for s in self.sellers.split(",") if s.strip()]
+
+    @property
+    def llm_enabled(self) -> bool:
+        return bool(self.groq_api_key)
+
+    def today(self) -> date:
+        return self.reference_date or date.today()
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

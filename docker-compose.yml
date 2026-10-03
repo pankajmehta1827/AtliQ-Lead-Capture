@@ -1,0 +1,31 @@
+# Local full stack: `docker compose up --build` -> http://localhost:8000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: atliq
+      POSTGRES_PASSWORD: atliq
+      POSTGRES_DB: atliq
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atliq"]
+      interval: 3s
+      retries: 20
+  app:
+    build: .
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://atliq:atliq@db:5432/atliq
+      REFERENCE_DATE: "2026-07-10"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:

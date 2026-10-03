@@ -1,0 +1,25 @@
+{
+  "_note": "AtliQ service catalogue used for service classification and cross-sell suggestions. Maintained by leadership (PRD open question: confirm this list).",
+  "services": [
+    {
+      "name": "Power BI Dashboards",
+      "typical_needs": ["management / board reporting", "KPI dashboards", "automating manual Excel or report packs", "operational performance monitoring"]
+    },
+    {
+      "name": "Data Engineering",
+      "typical_needs": ["data warehouse or lakehouse", "data pipelines / ETL", "integrating many source systems", "data quality and governance"]
+    },
+    {
+      "name": "AI/ML Solutions",
+      "typical_needs": ["forecasting (demand, inventory)", "recommendation engines", "document processing / OCR", "chatbots and assistants", "fraud or anomaly detection"]
+    },
+    {
+      "name": "Custom Web App",
+      "typical_needs": ["customer or distributor portals", "internal tools and workflow apps", "booking or review platforms"]
+    },
+    {
+      "name": "Staff Augmentation",
+      "typical_needs": ["dedicated engineers", "overflow / white-label delivery capacity"]
+    }
+  ]
+}

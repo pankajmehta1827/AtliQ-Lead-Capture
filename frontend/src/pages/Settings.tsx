@@ -1,0 +1,149 @@
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { AppConfig, api } from "../api";
+
+type Rule = { id: number; rule_type: string; value: string; note: string | null; created_by: string | null };
+type Audit = {
+  id: number;
+  ts: string;
+  actor: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  source_ref: string | null;
+  outcome: string;
+  details: Record<string, unknown>;
+};
+
+export default function Settings({ config, onConfig }: { config: AppConfig; onConfig: (c: AppConfig) => void }) {
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [audit, setAudit] = useState<Audit[]>([]);
+  const [action, setAction] = useState("");
+  const [form, setForm] = useState({ rule_type: "email", value: "", note: "" });
+  const [open, setOpen] = useState<number | null>(null);
+
+  const load = useCallback(() => {
+    api<Rule[]>("/api/exclusions").then(setRules);
+    api<Audit[]>(`/api/audit?limit=300${action ? `&action=${action}` : ""}`).then(setAudit);
+  }, [action]);
+  useEffect(load, [load]);
+
+  async function addRule(e: React.FormEvent) {
+    e.preventDefault();
+    await api("/api/exclusions", { method: "POST", json: { ...form, note: form.note || null } });
+    setForm({ ...form, value: "", note: "" });
+    load();
+  }
+
+  async function toggleProcessing() {
+    await api("/api/admin/processing", { method: "POST", json: { enabled: !config.processing_enabled } });
+    onConfig(await api<AppConfig>("/api/config"));
+    load();
+  }
+
+  return (
+    <div className="page">
+      <header className="page-head">
+        <div>
+          <h1>Settings & action log</h1>
+        </div>
+      </header>
+
+      <div className="grid-2">
+        <div className="card">
+          <h3>Exclusions</h3>
+          <p className="muted small">
+            Contacts, domains, subjects or keywords the assistant must never read. Matching items are skipped and their content is not stored.
+          </p>
+          <form className="row" onSubmit={addRule}>
+            <select value={form.rule_type} onChange={(e) => setForm({ ...form, rule_type: e.target.value })}>
+              <option value="email">Email</option>
+              <option value="domain">Domain</option>
+              <option value="subject">Subject contains</option>
+              <option value="keyword">Body contains</option>
+            </select>
+            <input required minLength={2} placeholder="e.g. family@gmail.com" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+            <button className="primary">Add</button>
+          </form>
+          <ul className="plain">
+            {rules.map((r) => (
+              <li key={r.id} className="row-between">
+                <span>
+                  <span className="chip ghost">{r.rule_type}</span> {r.value} <span className="muted small">by {r.created_by}</span>
+                </span>
+                <button
+                  className="link"
+                  onClick={async () => {
+                    await api(`/api/exclusions/${r.id}`, { method: "DELETE" });
+                    load();
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="card">
+          <h3>Kill switch</h3>
+          <p className="muted small">
+            Pause all automatic processing. New conversations keep queuing and nothing is lost; resume to process them.
+          </p>
+          <button className={config.processing_enabled ? "danger" : "primary"} onClick={toggleProcessing}>
+            {config.processing_enabled ? "Pause processing" : "Resume processing"}
+          </button>
+          <h3 style={{ marginTop: 24 }}>Model</h3>
+          <p className="small">
+            {config.llm_mode === "llm"
+              ? `LangGraph pipeline on Groq (${config.model}).`
+              : "Rules mode: no GROQ_API_KEY configured, so drafts use conservative rule-based extraction and always need review."}
+          </p>
+        </div>
+      </div>
+
+      <div className="card table-wrap">
+        <div className="row-between">
+          <h3>Action log</h3>
+          <select value={action} onChange={(e) => setAction(e.target.value)}>
+            <option value="">All actions</option>
+            {["captured", "draft_created", "skipped", "draft_confirmed", "draft_discarded", "processing_error", "reminder_done",
+              "reminder_scan", "deal_edited", "exclusion_added", "kill_switch"].map((a) => (
+              <option key={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Source</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.map((a) => (
+              <Fragment key={a.id}>
+                <tr className="clickable" onClick={() => setOpen(open === a.id ? null : a.id)}>
+                  <td className="small">{new Date(a.ts).toLocaleString()}</td>
+                  <td>{a.actor}</td>
+                  <td>{a.action}</td>
+                  <td className="small ellipsis">{a.source_ref}</td>
+                  <td>{a.outcome}</td>
+                </tr>
+                {open === a.id && (
+                  <tr>
+                    <td colSpan={5}>
+                      <pre className="notes">{JSON.stringify(a.details, null, 2)}</pre>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
