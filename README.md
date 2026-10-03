@@ -9,7 +9,7 @@ every record before it reaches the CRM, and the assistant never contacts a clien
 |---|---|
 | Frontend | React 18 + TypeScript (Vite) |
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2 |
-| AI | LangGraph capture pipeline + LangChain structured output on **Groq** (`llama-3.3-70b-versatile`, configurable) |
+| AI | LangGraph capture pipeline + LangChain structured output on **Groq** (`openai/gpt-oss-120b`, configurable) |
 | Database | PostgreSQL |
 | Deployment | Railway (one Docker service + Railway PostgreSQL) |
 

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # LLM (Groq via LangChain). If no key is set the pipeline runs in a rule-based offline mode.
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     llm_temperature: float = 0.0
 
     # Domain settings
