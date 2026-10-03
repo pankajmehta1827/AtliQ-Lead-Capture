@@ -146,7 +146,7 @@ export default function Capture({ onChange }: { onChange: () => void }) {
         </form>
       </div>
 
-      <div className="card table-wrap">
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppConfig, api, setSession } from "../api";
+import { Corners, Icon } from "../components/ui";
 
 export default function Login({ config, onLogin }: { config: AppConfig; onLogin: (u: string) => void }) {
   const [user, setUser] = useState(config.users[0] ?? "");
@@ -20,13 +21,14 @@ export default function Login({ config, onLogin }: { config: AppConfig; onLogin:
 
   return (
     <div className="login">
-      <form className="card login-card" onSubmit={submit}>
-        <div className="brand">
-          <span className="brand-mark">A</span>
-          <div>
-            <strong>AtliQ</strong>
-            <small>Lead Capture & Follow-up Assistant</small>
+      <form className="blueprint login-card" onSubmit={submit}>
+        <Corners />
+        <div>
+          <div className="brand">
+            <span className="brand-mark" />
+            AtliQ
           </div>
+          <div className="brand-sub">Lead Assistant</div>
         </div>
         <label>
           I am
@@ -43,8 +45,10 @@ export default function Login({ config, onLogin }: { config: AppConfig; onLogin:
           </label>
         )}
         {error && <div className="error">{error}</div>}
-        <button className="primary" type="submit">
+        <button className="primary blueprint wide" type="submit">
+          <Corners />
           Continue
+          <Icon name="arrow" size={14} />
         </button>
         <p className="muted small">
           The assistant drafts CRM records from your conversations. Nothing is saved to the CRM until you confirm it,

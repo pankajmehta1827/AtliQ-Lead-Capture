@@ -59,8 +59,8 @@ export default function DealDetail() {
 
   return (
     <div className="page">
-      <Link to="/pipeline" className="muted small">
-        ← Pipeline
+      <Link to="/leads" className="kicker">
+        ← Leads
       </Link>
       <header className="page-head">
         <div>

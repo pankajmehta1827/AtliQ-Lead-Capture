@@ -101,7 +101,7 @@ export default function Settings({ config, onConfig }: { config: AppConfig; onCo
         </div>
       </div>
 
-      <div className="card table-wrap">
+      <div className="table-wrap">
         <div className="row-between">
           <h3>Action log</h3>
           <select value={action} onChange={(e) => setAction(e.target.value)}>

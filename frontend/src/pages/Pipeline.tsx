@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Deal, FLAG_LABELS, api, money } from "../api";
+import { Corners } from "../components/ui";
 
 type Metric = { label: string; value: number | null; target: number };
 type Metrics = {
@@ -14,12 +15,12 @@ type Metrics = {
 function Tile({ label, value, target, sub }: { label: string; value: number | null; target: number; sub: string }) {
   const ok = value != null && value >= target;
   return (
-    <div className="tile card">
-      <div className="muted small">{label}</div>
-      <div className={`tile-value ${value == null ? "" : ok ? "good" : "bad"}`}>{value == null ? "—" : `${value}%`}</div>
-      <div className="muted small">
+    <div className="kpi">
+      <span className="label">{label}</span>
+      <span className={`value ${value == null ? "" : ok ? "good" : "bad"}`}>{value == null ? "—" : `${value}%`}</span>
+      <span className="sub">
         target {target}% · {sub}
-      </div>
+      </span>
     </div>
   );
 }
@@ -51,23 +52,24 @@ export default function Pipeline({ user }: { user: string }) {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Pipeline health</h1>
+          <h1>Leads & pipeline health</h1>
           <p className="muted">Open deals, flagged first: inactive for more than 14 days, missing next step or proposals unanswered.</p>
         </div>
       </header>
 
       {metrics && (
-        <div className="tiles">
+        <div className="kpis blueprint">
+          <Corners />
           <Tile label={metrics.pipeline_hygiene.label} value={metrics.pipeline_hygiene.value} target={100}
             sub={`${metrics.pipeline_hygiene.open_deals} open deals`} />
           <Tile label={metrics.north_star.label} value={metrics.north_star.value} target={95} sub={`${metrics.north_star.n} new leads confirmed`} />
           <Tile label={metrics.trust.label} value={metrics.trust.value} target={80} sub={`${metrics.trust.reviewed} drafts reviewed`} />
-          <div className="tile card">
-            <div className="muted small">Flagged open deals / value at risk</div>
-            <div className="tile-value bad">
-              {flagged.length} <span className="tile-sub">/ {money(atRisk)}</span>
-            </div>
-            <div className="muted small">{metrics.queue.pending_drafts} drafts waiting review</div>
+          <div className="kpi">
+            <span className="label">Flagged deals / value at risk</span>
+            <span className="value bad">
+              {flagged.length} <small>/ {money(atRisk)}</small>
+            </span>
+            <span className="sub">{metrics.queue.pending_drafts} drafts waiting review</span>
           </div>
         </div>
       )}
@@ -92,7 +94,7 @@ export default function Pipeline({ user }: { user: string }) {
         </label>
       </div>
 
-      <div className="card table-wrap">
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -116,7 +118,7 @@ export default function Pipeline({ user }: { user: string }) {
                 </td>
                 <td>{d.status ?? <span className="muted">—</span>}</td>
                 <td>{d.owner ?? <span className="muted">—</span>}</td>
-                <td className="num">{money(d.est_value_usd)}</td>
+                <td className="num value-cell">{money(d.est_value_usd)}</td>
                 <td>
                   {d.last_contact_date ?? "never"}
                   {d.days_since_contact != null && <div className="muted small">{d.days_since_contact} days ago</div>}

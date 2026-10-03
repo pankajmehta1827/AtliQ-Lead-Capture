@@ -39,7 +39,7 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Reminders</h1>
+          <h1>Follow-ups</h1>
           <p className="muted">The assistant reminds you. It never contacts the client — you decide what to do.</p>
         </div>
         <div className="row">

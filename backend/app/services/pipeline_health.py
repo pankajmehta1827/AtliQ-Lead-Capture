@@ -39,6 +39,19 @@ def deal_flags(deal: Deal, today: date) -> dict[str, Any]:
     return {"flags": flags, "days_since_contact": days, "is_open": is_open}
 
 
+_KIND_BASE = {"proposal_unanswered": 62, "commitment": 58, "inactive": 48, "no_next_step": 40}
+
+
+def reminder_priority(r: Reminder, today: date) -> int:
+    """Transparent 0-100 ranking for the Today queue: what is at stake and how late it is.
+    Not a model score: kind of signal + days overdue + deal value."""
+    score = _KIND_BASE.get(r.kind, 45)
+    score += min(20, max(0, (today - r.due_date).days) * 2)
+    value = r.deal.est_value_usd if r.deal else None
+    score += min(18, int((value or 0) / 5000))
+    return max(0, min(99, score))
+
+
 def _ensure_reminder(db: Session, deal: Deal, kind: str, reason: str, due: date, step: str) -> bool:
     exists = db.scalar(select(Reminder).where(Reminder.deal_id == deal.id, Reminder.kind == kind, Reminder.status == "open"))
     if exists:

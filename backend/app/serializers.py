@@ -5,7 +5,7 @@ from typing import Any
 
 from .config import get_settings
 from .models import AuditLog, CrossSellSuggestion, Deal, Draft, ExclusionRule, Reminder, SourceItem
-from .services.pipeline_health import deal_flags
+from .services.pipeline_health import deal_flags, reminder_priority
 
 
 def _iso(v: Any) -> str | None:
@@ -65,6 +65,10 @@ def reminder(r: Reminder) -> dict:
         "status": r.status, "created_at": _iso(r.created_at), "resolved_at": _iso(r.resolved_at),
         "source": source_item(r.source_item),
         "last_message": (r.source_item.body or "")[-600:] if r.source_item and r.source_item.body else None,
+        "contact_name": r.deal.contact.name if r.deal and r.deal.contact else None,
+        "deal_status": r.deal.status if r.deal else None,
+        "est_value_usd": r.deal.est_value_usd if r.deal else None,
+        "priority": reminder_priority(r, get_settings().today()),
     }
 
 

@@ -47,7 +47,7 @@ export default function ReviewQueue({ user, onChange }: { user: string; onChange
       </header>
 
       {!loading && drafts.length === 0 ? (
-        <div className="empty card">
+        <div className="empty blueprint">
           <h3>Queue is clear</h3>
           <p className="muted">
             New drafts appear here within minutes of a conversation. Try <Link to="/capture">Capture</Link> to sync the sample
@@ -56,7 +56,7 @@ export default function ReviewQueue({ user, onChange }: { user: string; onChange
         </div>
       ) : (
         <div className="split">
-          <ul className="list card">
+          <ul className="list">
             {drafts.map((d) => (
               <li key={d.id} className={d.id === selectedId ? "sel" : ""} onClick={() => setSelectedId(d.id)}>
                 <div className="row-between">
@@ -118,7 +118,7 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
     return draft.fields[focus]?.evidence ?? null;
   }, [draft, focus]);
 
-  if (!draft) return <div className="card editor">Loading…</div>;
+  if (!draft) return <div className="editor">Loading…</div>;
 
   const edits: Record<string, string> = {};
   FIELD_ORDER.forEach((k) => {
@@ -159,7 +159,7 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
 
   return (
     <div className="editor-wrap">
-      <div className="card editor">
+      <div className="editor">
         <div className="row-between">
           <h2>{draft.kind === "new_lead" ? "New lead draft" : `Update to ${draft.deal_lead_code}`}</h2>
           <span className="muted small">

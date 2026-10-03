@@ -98,7 +98,7 @@ def list_reminders(
     db: Session = Depends(get_db), _: str = Depends(current_user),
 ):
     q = (
-        select(Reminder).options(joinedload(Reminder.deal).joinedload(Deal.company), joinedload(Reminder.source_item))
+        select(Reminder).options(joinedload(Reminder.deal).joinedload(Deal.company), joinedload(Reminder.deal).joinedload(Deal.contact), joinedload(Reminder.source_item))
         .where(Reminder.status == status).order_by(Reminder.due_date)
     )
     if owner:

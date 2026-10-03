@@ -91,6 +91,10 @@ export type Reminder = {
   status: string;
   source: SourceItem | null;
   last_message: string | null;
+  contact_name: string | null;
+  deal_status: string | null;
+  est_value_usd: number | null;
+  priority: number;
 };
 
 export type AppConfig = {
