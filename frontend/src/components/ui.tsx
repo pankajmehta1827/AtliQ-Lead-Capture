@@ -33,6 +33,21 @@ const PATHS: Record<string, JSX.Element> = {
     </>
   ),
   pulse: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
+  dashboard: (
+    <>
+      <rect x="3" y="3" width="7" height="9" />
+      <rect x="14" y="3" width="7" height="5" />
+      <rect x="14" y="12" width="7" height="9" />
+      <rect x="3" y="16" width="7" height="5" />
+    </>
+  ),
+  sparkle: <path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 14" />
+    </>
+  ),
   inbox: (
     <>
       <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />

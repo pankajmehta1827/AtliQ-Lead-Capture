@@ -3,7 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-route
 import { AppConfig, Deal, api, getSession, setSession } from "./api";
 import { Corners, Icon, initials } from "./components/ui";
 import Login from "./pages/Login";
-import Today from "./pages/Today";
+import Dashboard from "./pages/Dashboard";
 import ReviewQueue from "./pages/ReviewQueue";
 import Pipeline from "./pages/Pipeline";
 import DealDetail from "./pages/DealDetail";
@@ -20,13 +20,6 @@ const ROLES: Record<string, string> = {
 };
 
 type Counts = { drafts: number; due: number; leads: number };
-
-function greeting(today: Date) {
-  // the dataset runs on a fixed "today"; the greeting follows the real clock
-  const h = new Date().getHours();
-  const part = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
-  return { part, date: today.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) };
-}
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -64,41 +57,44 @@ export default function App() {
   if (!config) return <div className="boot">Connecting to the assistant…</div>;
   if (!user) return <Login config={config} onLogin={(u) => setUser(u)} />;
 
-  const g = greeting(new Date(config.today));
-  const nav = [
-    { to: "/today", label: "Today", icon: "today", count: counts.due, hot: true },
-    { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, hot: true },
+  const workspace = [
+    { to: "/dashboard", label: "Dashboard", icon: "dashboard", count: counts.due, badge: true },
+    { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, badge: true },
     { to: "/leads", label: "Leads", icon: "leads", count: counts.leads },
-    { to: "/follow-ups", label: "Follow-ups", icon: "bell" },
-    { to: "/capture", label: "Capture", icon: "plus" },
+    { to: "/capture", label: "AI Capture", icon: "sparkle" },
+    { to: "/follow-ups", label: "Follow-ups", icon: "pulse" },
   ];
-  const navSecondary = [
+  const admin = [
     { to: "/summary", label: "Daily summary", icon: "doc" },
     { to: "/settings", label: "Settings & log", icon: "settings" },
   ];
 
   return (
     <div className="shell">
+      <div className="brand-cell">
+        <span className="brand-mark">A</span>
+        <span className="brand-name">AtliQ</span>
+        <span className="brand-sub">Leads</span>
+      </div>
+
+      <TopBar user={user} due={counts.due} />
+
       <aside className="sidebar">
-        <div className="brand-block">
-          <div className="brand">
-            <span className="brand-mark" />
-            AtliQ
-          </div>
-          <div className="brand-sub">Lead Assistant</div>
-        </div>
+        <span className="nav-label">Workspace</span>
         <nav>
-          {nav.map((n) => (
+          {workspace.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "active" : "")}>
-              <Icon name={n.icon} />
+              <Icon name={n.icon} size={17} />
               <span className="label">{n.label}</span>
-              {n.count ? <span className={`count ${n.hot ? "hot" : ""}`}>{n.count}</span> : null}
+              {n.count ? <span className={`count ${n.badge ? "badge" : ""}`}>{n.count}</span> : null}
             </NavLink>
           ))}
-          <div className="nav-sep" />
-          {navSecondary.map((n) => (
+        </nav>
+        <span className="nav-label second">Admin</span>
+        <nav>
+          {admin.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "active" : "")}>
-              <Icon name={n.icon} />
+              <Icon name={n.icon} size={17} />
               <span className="label">{n.label}</span>
             </NavLink>
           ))}
@@ -127,47 +123,49 @@ export default function App() {
         </div>
       </aside>
 
-      <div className="main">
-        <header className="topbar">
-          <div className="title">
-            <span className="kicker">{g.date}</span>
-            <h1>
-              Good {g.part}, {user}
-            </h1>
-          </div>
-          <DealSearch />
-          <CaptureButton />
-        </header>
-        <div className="scroll">
-          <Routes>
-            <Route path="/" element={<Navigate to="/today" replace />} />
-            <Route path="/today" element={<Today user={user} onChange={refreshCounts} />} />
-            <Route path="/review" element={<ReviewQueue user={user} onChange={refreshCounts} />} />
-            <Route path="/leads" element={<Pipeline user={user} />} />
-            <Route path="/deals/:id" element={<DealDetail />} />
-            <Route path="/follow-ups" element={<Reminders user={user} onChange={refreshCounts} />} />
-            <Route path="/summary" element={<Summary user={user} />} />
-            <Route path="/capture" element={<Capture onChange={refreshCounts} />} />
-            <Route path="/settings" element={<Settings config={config} onConfig={setConfig} />} />
-            {/* old paths */}
-            <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
-            <Route path="/reminders" element={<Navigate to="/follow-ups" replace />} />
-            <Route path="*" element={<Navigate to="/today" replace />} />
-          </Routes>
-        </div>
-      </div>
+      <main className="main">
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard user={user} today={config.today} onChange={refreshCounts} />} />
+          <Route path="/review" element={<ReviewQueue user={user} onChange={refreshCounts} />} />
+          <Route path="/leads" element={<Pipeline user={user} />} />
+          <Route path="/deals/:id" element={<DealDetail />} />
+          <Route path="/follow-ups" element={<Reminders user={user} onChange={refreshCounts} />} />
+          <Route path="/summary" element={<Summary user={user} />} />
+          <Route path="/capture" element={<Capture onChange={refreshCounts} />} />
+          <Route path="/settings" element={<Settings config={config} onConfig={setConfig} />} />
+          {/* old paths */}
+          <Route path="/today" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/pipeline" element={<Navigate to="/leads" replace />} />
+          <Route path="/reminders" element={<Navigate to="/follow-ups" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 }
 
-function CaptureButton() {
+function TopBar({ user, due }: { user: string; due: number }) {
   const navigate = useNavigate();
   return (
-    <button className="primary blueprint wide" onClick={() => navigate("/capture")}>
-      <Corners />
-      Capture lead
-      <Icon name="arrow" size={14} />
-    </button>
+    <header className="topbar">
+      <DealSearch />
+      <div className="topbar-right">
+        <button className="icon" title={`${due} follow-up(s) due`} onClick={() => navigate("/follow-ups")}>
+          <Icon name="bell" size={18} />
+          {due > 0 && <span className="dot" />}
+        </button>
+        <button className="primary blueprint" onClick={() => navigate("/capture")}>
+          <Corners />
+          <Icon name="plus" size={15} />
+          New lead
+        </button>
+        <div className="vsep" />
+        <div className="initials-box" title={user}>
+          {initials(user)}
+        </div>
+      </div>
+    </header>
   );
 }
 
