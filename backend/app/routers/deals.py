@@ -67,6 +67,9 @@ class DealPatch(BaseModel):
     next_followup_date: date | None = None
     est_value_usd: float | None = None
     service_interest: str | None = None
+    source: str | None = None
+    requirement: str | None = None
+    notes: str | None = None
 
 
 @router.patch("/deals/{deal_id}")

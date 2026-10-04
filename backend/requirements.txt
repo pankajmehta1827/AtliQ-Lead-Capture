@@ -8,3 +8,4 @@ python-multipart>=0.0.12
 langchain-core>=0.3
 langchain-groq>=0.2
 langgraph>=0.2
+openpyxl>=3.1

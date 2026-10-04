@@ -340,6 +340,25 @@ mark { background: var(--color-mark); color: inherit; padding: 0 1px; }
 .login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .login-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; padding: 28px; }
 
+/* CRM */
+.sync-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2.2fr); }
+.sync-stats { display: flex; flex-direction: column; border-right: 1px solid var(--color-divider); }
+.sync-stats > div { padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--color-neutral-200); }
+.sync-stats > div:last-child { border-bottom: none; }
+.sync-stats .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-600); }
+.sync-stats .value { font-family: var(--font-heading); font-weight: 600; font-size: 30px; line-height: 1; }
+.sync-stats .value.small-value { font-size: 20px; }
+.sync-feed { list-style: none; margin: 0; padding: 4px 18px; }
+.sync-feed li { padding: 10px 0; border-bottom: 1px solid var(--color-neutral-200); font-size: 13px; }
+.sync-feed li:last-child { border-bottom: none; }
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--color-text); }
+.mono { white-space: nowrap; font-variant-numeric: tabular-nums; font-family: var(--font-heading); font-weight: 600; font-size: 15px; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent); }
+.dialog { border: 1px solid var(--color-divider); overflow-x: hidden; width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px; background: var(--color-bg); box-shadow: var(--shadow-lg); }
+.dialog h2 { font-size: 22px; text-transform: uppercase; margin: 0; }
+.dialog .notice ul { margin: 6px 0 10px; padding-left: 18px; }
+
 @media (max-width: 1100px) {
   .editor-wrap { grid-template-columns: 1fr; }
   .source { position: static; }
@@ -361,4 +380,6 @@ mark { background: var(--color-mark); color: inherit; padding: 0 1px; }
   .list { position: static; max-height: 280px; }
   .q-row { grid-template-columns: 36px minmax(0, 1fr); }
   .q-actions { grid-column: 2; flex-wrap: wrap; }
+  .sync-grid { grid-template-columns: 1fr; }
+  .sync-stats { border-right: none; border-bottom: 1px solid var(--color-divider); flex-direction: row; flex-wrap: wrap; }
 }

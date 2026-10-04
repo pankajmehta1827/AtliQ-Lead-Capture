@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ReviewQueue from "./pages/ReviewQueue";
 import Pipeline from "./pages/Pipeline";
+import CRM from "./pages/CRM";
 import DealDetail from "./pages/DealDetail";
 import Reminders from "./pages/Reminders";
 import Capture from "./pages/Capture";
@@ -61,6 +62,7 @@ export default function App() {
     { to: "/dashboard", label: "Dashboard", icon: "dashboard", count: counts.due, badge: true },
     { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, badge: true },
     { to: "/leads", label: "Leads", icon: "leads", count: counts.leads },
+    { to: "/crm", label: "CRM", icon: "database" },
     { to: "/capture", label: "AI Capture", icon: "sparkle" },
     { to: "/follow-ups", label: "Follow-ups", icon: "pulse" },
   ];
@@ -129,6 +131,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard user={user} today={config.today} onChange={refreshCounts} />} />
           <Route path="/review" element={<ReviewQueue user={user} onChange={refreshCounts} />} />
           <Route path="/leads" element={<Pipeline user={user} />} />
+          <Route path="/crm" element={<CRM user={user} />} />
           <Route path="/deals/:id" element={<DealDetail />} />
           <Route path="/follow-ups" element={<Reminders user={user} onChange={refreshCounts} />} />
           <Route path="/summary" element={<Summary user={user} />} />

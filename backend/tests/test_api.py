@@ -104,3 +104,47 @@ def test_rerun_requires_llm_and_supersedes(client, monkeypatch):
     status = client.get("/api/capture/rerun").json()
     assert status["rules_drafts"] == 1 and status["queued"] == 2
     assert len(client.get("/api/drafts", params={"status": "superseded"}).json()) == 2
+
+
+def test_crm_list_create_export_import_and_ai_sync(client):
+    leads = client.get("/api/crm/leads").json()
+    assert len(leads) == 40 and all(l["origin"] == "crm_export" for l in leads)
+    assert {"Won", "Lost"} & {l["status"] for l in leads}  # closed deals are in the CRM too
+
+    # manual add, duplicate guard
+    dup = client.post("/api/crm/leads", json={"company": "GreenGrid Solar", "contact_email": "aditya@greengrid.in"})
+    assert dup.status_code == 409
+    new = client.post("/api/crm/leads", json={"company": "Orbit Mills", "contact_email": "ops@orbitmills.in",
+                                               "status": "New", "est_value_usd": 12000})
+    assert new.status_code == 200 and new.json()["lead_code"] == "L-1041"
+    assert next(l for l in client.get("/api/crm/leads").json() if l["lead_code"] == "L-1041")["origin"] == "manual"
+
+    # CSV export round-trips through import (no changes)
+    csv_text = client.get("/api/crm/export").text
+    assert csv_text.startswith("lead_id,company,contact_name")
+    r = client.post("/api/crm/import", files={"file": ("crm.csv", csv_text.encode(), "text/csv")})
+    assert r.json()["created"] == 0 and r.json()["updated"] == 0
+
+    # Excel import: update one existing lead, add one new
+    import io
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active
+    ws.append(["lead_id", "company", "status", "next_followup_date"])
+    ws.append(["L-1023", "FinEdge Bank", "Proposal Sent", "2026-07-15"])
+    ws.append([None, "Brightwave Labs", "New", None])
+    buf = io.BytesIO(); wb.save(buf)
+    r = client.post("/api/crm/import", files={"file": ("crm.xlsx", buf.getvalue(), "application/octet-stream")})
+    assert r.json()["created"] == 1 and r.json()["updated"] == 1
+    finedge = next(l for l in client.get("/api/crm/leads").json() if l["lead_code"] == "L-1023")
+    assert finedge["next_followup_date"] == "2026-07-15"
+    assert client.get("/api/crm/export", params={"format": "xlsx"}).content[:2] == b"PK"
+
+    # AI Lead app -> CRM: a confirmed draft shows up as an AI write
+    client.post("/api/capture/sample", params={"limit": 34})
+    client.post("/api/capture/process", params={"limit": 50})
+    pixel = next(d for d in client.get("/api/drafts").json() if "pixelworks" in d["source"]["external_ref"])
+    client.post(f"/api/drafts/{pixel['id']}/confirm", json={"edits": {"company": "PixelWorks Agency", "next_step": "Reply"}})
+    sync = client.get("/api/crm/sync").json()
+    assert sync["ai_created"] == 1 and sync["recent"][0]["company"] == "PixelWorks Agency"
+    px = next(l for l in client.get("/api/crm/leads").json() if l["company"] == "PixelWorks Agency")
+    assert px["origin"] == "ai_capture"

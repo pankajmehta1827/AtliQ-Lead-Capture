@@ -41,6 +41,13 @@ const PATHS: Record<string, JSX.Element> = {
       <rect x="3" y="16" width="7" height="5" />
     </>
   ),
+  database: (
+    <>
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+    </>
+  ),
   sparkle: <path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z" />,
   clock: (
     <>

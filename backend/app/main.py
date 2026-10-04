@@ -14,7 +14,7 @@ from sqlalchemy import func, select, text
 from .config import get_settings
 from .db import SessionLocal, engine, init_db
 from .models import Deal
-from .routers import admin, capture, deals, drafts
+from .routers import admin, capture, crm, deals, drafts
 from .services.capture import worker_loop
 from .services.pipeline_health import scheduler_loop
 from .services.seed import import_crm_csv
@@ -48,7 +48,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-for r in (capture.router, drafts.router, deals.router, admin.router):
+for r in (capture.router, drafts.router, deals.router, crm.router, admin.router):
     app.include_router(r)
 
 
