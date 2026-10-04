@@ -35,8 +35,11 @@ def evidence_in_source(evidence: str | None, source: str, min_ratio: float = 0.8
     return False
 
 
-def ground_extraction(extraction: dict, source: str) -> tuple[dict, list[str]]:
-    """Return a cleaned extraction and the list of fields dropped for lack of grounding."""
+def ground_extraction(extraction: dict, source: str, crm_text: str = "") -> tuple[dict, list[str]]:
+    """Return a cleaned extraction and the list of fields dropped for lack of grounding.
+
+    A value whose evidence comes from the existing CRM record (shown to the model as context) is not new
+    information: it is removed quietly instead of being reported as an ungrounded value."""
     dropped: list[str] = []
     out = dict(extraction)
     for key, val in extraction.items():
@@ -45,6 +48,9 @@ def ground_extraction(extraction: dict, source: str) -> tuple[dict, list[str]]:
                 out[key] = {"value": None, "evidence": None, "confidence": 0.0}
                 continue
             if not evidence_in_source(val.get("evidence"), source):
+                if crm_text and evidence_in_source(val.get("evidence"), crm_text):
+                    out[key] = {"value": None, "evidence": None, "confidence": 0.0}
+                    continue
                 dropped.append(key)
                 out[key] = {"value": None, "evidence": None, "confidence": 0.0, "dropped_value": val.get("value")}
             else:

@@ -32,7 +32,8 @@ Rules:
 AtliQ service catalogue:
 {catalogue}
 
-Existing CRM record this conversation appears to belong to (may be empty):
+Existing CRM record this conversation appears to belong to (may be empty). It is background only:
+never quote it as evidence, and only return a field if THIS conversation states or changes it.
 {crm_context}"""
 
 CROSSSELL_SYSTEM = """You suggest cross-sell / upsell ideas for ONE existing AtliQ client.

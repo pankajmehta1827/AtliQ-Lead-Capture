@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from .. import serializers as ser
 from ..db import get_db
 from ..deps import current_user
-from ..models import SourceItem
+from ..audit import log_action
+from ..config import get_settings
+from ..models import Draft, SourceItem
 from ..parsing import parse_markdown_item
 from ..services.capture import enqueue_item, process_pending
 from ..services.seed import ingest_sample_dataset
@@ -95,3 +97,35 @@ def retry_item(item_id: int, user: str = Depends(current_user), db: Session = De
     item.status, item.attempts = "queued", 0
     db.commit()
     return ser.source_item(item)
+
+
+@router.get("/rerun")
+def rerun_status(db: Session = Depends(get_db), _: str = Depends(current_user)):
+    rules_pending = db.scalar(
+        select(func.count()).select_from(Draft).where(Draft.status == "pending", Draft.llm_mode == "rules")
+    ) or 0
+    queued = db.scalar(select(func.count()).select_from(SourceItem).where(SourceItem.status.in_(["queued", "processing"]))) or 0
+    return {"rules_drafts": rules_pending, "queued": queued, "llm_enabled": get_settings().llm_enabled}
+
+
+@router.post("/rerun")
+def rerun_with_ai(limit: int = 20, user: str = Depends(current_user), db: Session = Depends(get_db)):
+    """Re-process conversations whose pending draft was made in rules mode (no LLM key at the time).
+    The old draft is kept as 'superseded' for the audit trail; nothing in the CRM changes."""
+    if not get_settings().llm_enabled:
+        raise HTTPException(409, "No GROQ_API_KEY configured: re-running would use rules mode again")
+    drafts = db.scalars(
+        select(Draft).where(Draft.status == "pending", Draft.llm_mode == "rules")
+        .order_by(Draft.id).limit(max(1, min(limit, 100)))
+    ).all()
+    requeued = 0
+    for d in drafts:
+        si = db.get(SourceItem, d.source_item_id)
+        if not si or not si.body:
+            continue
+        d.status = "superseded"
+        si.status, si.attempts, si.last_error = "queued", 0, None
+        requeued += 1
+    log_action(db, actor=user, action="rerun_with_ai", outcome="queued", details={"requeued": requeued})
+    db.commit()
+    return {"requeued": requeued}

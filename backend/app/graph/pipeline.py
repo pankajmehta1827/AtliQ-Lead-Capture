@@ -28,7 +28,7 @@ from .grounding import evidence_in_source, ground_extraction
 
 LEAD_CODE_RE = re.compile(r"\bL-\d{4}\b")
 KEY_FIELDS_NEW = ["company", "contact_name", "requirement", "next_step"]
-KEY_FIELDS_UPDATE = ["requirement", "next_step"]
+KEY_FIELDS_UPDATE = ["next_step"]  # the deal already holds company, contact and requirement
 
 
 class CaptureState(TypedDict, total=False):
@@ -42,6 +42,7 @@ class CaptureState(TypedDict, total=False):
     classification: dict
     extraction: dict
     dropped_fields: list[str]
+    crm_context: str
     matches: list[dict]
     kind: str
     category: str
@@ -177,12 +178,13 @@ def extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
         result = heuristics.extract(
             {**item, "body": state["masked_body"]}, pre[0] if pre else None, s.today(), s.internal_domain
         )
-    return {"extraction": result, "trace": _trace(state, "extracted fields")}
+    return {"extraction": result, "crm_context": crm_context, "trace": _trace(state, "extracted fields")}
 
 
 def ground(state: CaptureState) -> CaptureState:
     source = _conversation_text(state["item"], state["masked_body"])
-    cleaned, dropped = ground_extraction(state["extraction"], source)
+    crm = state.get("crm_context") or ""
+    cleaned, dropped = ground_extraction(state["extraction"], source, "" if crm == "none" else crm)
     return {
         "extraction": cleaned,
         "dropped_fields": dropped,

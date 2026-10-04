@@ -60,3 +60,16 @@ def test_grounding_drops_invented_values():
     assert out["timeline"]["value"] is None and dropped == ["timeline"]
     assert len(out["summary"]) == 1
     assert evidence_in_source("proposal  by 17 jul", src)
+
+
+def test_grounding_ignores_values_quoted_from_crm_context():
+    src = "Neha: we need the vendor portal live by October."
+    crm = "L-1004 | GlobalMart | status Proposal Sent"
+    ex = {
+        "stage": {"value": "Proposal Sent", "evidence": "status Proposal Sent", "confidence": 0.9},
+        "timeline": {"value": "October", "evidence": "live by October", "confidence": 0.9},
+        "summary": [], "followups": [], "new_needs": [],
+    }
+    out, dropped = ground_extraction(ex, src, crm)
+    assert out["stage"]["value"] is None and dropped == []  # repeats CRM: not new, not an error
+    assert out["timeline"]["value"] == "October"

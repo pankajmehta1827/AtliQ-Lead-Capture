@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { SourceItem, api } from "../api";
+import { Corners } from "../components/ui";
 
 type Items = { items: SourceItem[]; counts: Record<string, number> };
 
 export default function Capture({ onChange }: { onChange: () => void }) {
   const [data, setData] = useState<Items>({ items: [], counts: {} });
+  const [rerun, setRerun] = useState<{ rules_drafts: number; queued: number; llm_enabled: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ channel: "email", subject: "", contact_name: "", contact_email: "", text: "" });
 
   const load = useCallback(() => {
     api<Items>("/api/capture/items").then(setData);
+    api<{ rules_drafts: number; queued: number; llm_enabled: boolean }>("/api/capture/rerun").then(setRerun);
   }, []);
   useEffect(() => {
     load();
@@ -31,6 +34,13 @@ export default function Capture({ onChange }: { onChange: () => void }) {
       setBusy(false);
     }
   }
+
+  const rerunWithAi = (limit: number) =>
+    run(
+      () => api<{ requeued: number }>(`/api/capture/rerun?limit=${limit}`, { method: "POST" }),
+      (r) =>
+        `Re-running ${r.requeued} conversation(s) with AI. New drafts replace the rules-mode ones in the review queue as they finish (about 1–2 per minute on the Groq free tier).`,
+    );
 
   const syncSample = () =>
     run(
@@ -85,6 +95,33 @@ export default function Capture({ onChange }: { onChange: () => void }) {
       {(data.counts.failed ?? 0) > 0 && (
         <div className="notice warn">
           {data.counts.failed} item(s) failed processing after retries (integration or AI unavailable). They are kept and can be retried below.
+        </div>
+      )}
+
+      {rerun && rerun.rules_drafts > 0 && (
+        <div className="blueprint card">
+          <Corners />
+          <div className="row-between">
+            <div>
+              <h3>Re-run with AI</h3>
+              <p className="muted small" style={{ margin: 0 }}>
+                {rerun.rules_drafts} draft(s) in the review queue were made in rules mode (before an AI key was set), so their
+                confidence is low. Re-running replaces them with AI drafts. Each conversation uses about 3–5k Groq tokens; the free
+                tier allows roughly 200k a day, so run it in batches.
+                {rerun.queued > 0 && <strong> {rerun.queued} conversation(s) are processing now.</strong>}
+              </p>
+            </div>
+            <div className="row">
+              <button className="primary blueprint" disabled={busy || !rerun.llm_enabled} onClick={() => rerunWithAi(20)}>
+                <Corners />
+                Re-run next {Math.min(20, rerun.rules_drafts)}
+              </button>
+              <button disabled={busy || !rerun.llm_enabled} onClick={() => rerunWithAi(100)}>
+                Re-run all {rerun.rules_drafts}
+              </button>
+            </div>
+          </div>
+          {!rerun.llm_enabled && <p className="error small">Set GROQ_API_KEY to enable re-running with AI.</p>}
         </div>
       )}
 

@@ -90,3 +90,17 @@ def test_reminder_scan_and_summary(client):
     assert client.post("/api/reminders/scan").json()["created"] == 0  # deduplicated
     summary = client.get("/api/summary/daily", params={"owner": "Bhavin"}).json()
     assert summary["due_reminders"] and all(r["owner"] == "Bhavin" for r in summary["due_reminders"])
+
+
+def test_rerun_requires_llm_and_supersedes(client, monkeypatch):
+    client.post("/api/capture/sample", params={"limit": 3})
+    client.post("/api/capture/process")
+    assert client.get("/api/capture/rerun").json()["rules_drafts"] == 3
+    assert client.post("/api/capture/rerun").status_code == 409  # rules mode: refuse
+
+    from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "groq_api_key", "test-key")
+    assert client.post("/api/capture/rerun", params={"limit": 2}).json()["requeued"] == 2
+    status = client.get("/api/capture/rerun").json()
+    assert status["rules_drafts"] == 1 and status["queued"] == 2
+    assert len(client.get("/api/drafts", params={"status": "superseded"}).json()) == 2
