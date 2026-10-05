@@ -76,6 +76,17 @@ cp .env.example .env                                                            
 cd ../frontend && npm install && npm run dev                                          # http://localhost:5173
 ```
 
+### Without Docker (SQLite)
+
+```bash
+cd frontend && npm install && npm run build
+cd ../backend && .venv/Scripts/python run_local.py      # http://localhost:8000
+```
+
+`run_local.py` serves the React build and stores data in `backend/atliq_local.db` (SQLite) instead of
+PostgreSQL; set `LOCAL_DATABASE_URL` to use a PostgreSQL server instead. The Groq key and other settings still
+come from `backend/.env`.
+
 ## Tests and evals
 
 ```bash

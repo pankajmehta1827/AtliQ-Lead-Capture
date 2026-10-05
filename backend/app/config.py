@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from datetime import date
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # backend/.env, wherever the server is started from
+    model_config = SettingsConfigDict(env_file=Path(__file__).resolve().parent.parent / ".env", extra="ignore")
 
     # Database. Railway injects DATABASE_URL as postgresql://...; we normalise it for psycopg 3.
     database_url: str = "postgresql+psycopg://atliq:atliq@localhost:5432/atliq"
