@@ -326,7 +326,7 @@ mark { background: var(--color-mark); color: inherit; padding: 0 1px; }
 .counts { display: flex; gap: 24px; margin-top: 18px; }
 .counts div { display: flex; flex-direction: column; }
 .counts strong { font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1.1; }
-.reminder h4 { margin: 4px 0; font-size: 18px; }
+.reminder h4 { font-size: 18px; }
 
 /* login */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
@@ -350,6 +350,26 @@ th.sortable:hover { color: var(--color-text); }
 .dialog { border: 1px solid var(--color-divider); overflow-x: hidden; width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px; background: var(--color-bg); box-shadow: var(--shadow-lg); }
 .dialog h2 { font-size: 22px; text-transform: uppercase; margin: 0; }
 .dialog .notice ul { margin: 6px 0 10px; padding-left: 18px; }
+
+/* follow-up deal timers */
+.reminder { display: flex; flex-direction: column; gap: 10px; }
+.reminder h4 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0; }
+.reminder .deal-value { margin-left: auto; font-family: var(--font-heading); font-weight: 600; font-size: 16px; color: var(--color-neutral-700); }
+.reminder .actions { margin-top: auto; }
+.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.reasons li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 0; border-top: 1px solid var(--color-neutral-200); font-size: 14px; }
+.deal-timer { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--color-good-700); background: var(--color-good-100); }
+.deal-timer .t-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-700); }
+.deal-timer .t-value { font-family: var(--font-heading); font-weight: 600; font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.deal-timer .t-days { margin-right: 6px; }
+.deal-timer.ok .t-value { color: var(--color-good-700); }
+.deal-timer.soon { border-color: #c48a3a; background: var(--color-warn-100); }
+.deal-timer.soon .t-value { color: var(--color-warn-800); }
+.deal-timer.late { border-color: var(--color-bad-700); background: var(--color-bad-100); }
+.deal-timer.late .t-value { color: var(--color-bad-700); }
+.t-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--color-bad-700); animation: t-pulse 1.2s ease-in-out infinite; }
+@keyframes t-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .t-pulse { animation: none; } }
 
 @media (max-width: 1100px) {
   .editor-wrap { grid-template-columns: 1fr; }

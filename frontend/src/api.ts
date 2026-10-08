@@ -95,6 +95,7 @@ export type Reminder = {
   deal_status: string | null;
   est_value_usd: number | null;
   priority: number;
+  deadline: string; // when the follow-up actually fell due (drives the live timer)
 };
 
 export type AppConfig = {

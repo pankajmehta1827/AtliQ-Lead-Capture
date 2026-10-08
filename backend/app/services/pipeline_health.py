@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -37,6 +37,24 @@ def deal_flags(deal: Deal, today: date) -> dict[str, Any]:
         if not deal.owner:
             flags.append("no_owner")
     return {"flags": flags, "days_since_contact": days, "is_open": is_open}
+
+
+NO_NEXT_STEP_GRACE_DAYS = 2  # a dated next step should be agreed within 2 days of contact
+
+
+def reminder_deadline(r: Reminder) -> date:
+    """When the follow-up actually fell due, for the live timers. Rule-based reminders are created on the
+    day of the scan, so their due_date is 'today'; the real clock starts when the deal went off track."""
+    s = get_settings()
+    deal = r.deal
+    anchor = (deal.last_contact_date or deal.created_date) if deal else None
+    if r.kind == "proposal_unanswered" and anchor:
+        return anchor + timedelta(days=s.proposal_unanswered_days)
+    if r.kind == "inactive" and anchor:
+        return anchor + timedelta(days=s.inactive_days)
+    if r.kind == "no_next_step" and anchor:
+        return min(r.due_date, anchor + timedelta(days=NO_NEXT_STEP_GRACE_DAYS))
+    return r.due_date
 
 
 _KIND_BASE = {"proposal_unanswered": 62, "commitment": 58, "inactive": 48, "no_next_step": 40}

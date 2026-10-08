@@ -148,3 +148,11 @@ def test_crm_list_create_export_import_and_ai_sync(client):
     assert sync["ai_created"] == 1 and sync["recent"][0]["company"] == "PixelWorks Agency"
     px = next(l for l in client.get("/api/crm/leads").json() if l["company"] == "PixelWorks Agency")
     assert px["origin"] == "ai_capture"
+
+
+def test_reminder_deadline_reflects_how_late_the_deal_is(client):
+    client.post("/api/reminders/scan")
+    rems = client.get("/api/reminders", params={"owner": "Bhavin"}).json()
+    finedge = next(r for r in rems if r["lead_code"] == "L-1023" and r["kind"] == "proposal_unanswered")
+    # last contact 2026-03-30 + 7 days, not the scan date
+    assert finedge["due_date"] == "2026-07-10" and finedge["deadline"] == "2026-04-06"
