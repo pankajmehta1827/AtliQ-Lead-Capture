@@ -64,7 +64,7 @@ def reminder_priority(r: Reminder, today: date) -> int:
     """Transparent 0-100 ranking for the Today queue: what is at stake and how late it is.
     Not a model score: kind of signal + days overdue + deal value."""
     score = _KIND_BASE.get(r.kind, 45)
-    score += min(20, max(0, (today - r.due_date).days) * 2)
+    score += min(20, max(0, (today - reminder_deadline(r)).days) * 2)  # same clock as the live timers
     value = r.deal.est_value_usd if r.deal else None
     score += min(18, int((value or 0) / 5000))
     return max(0, min(99, score))

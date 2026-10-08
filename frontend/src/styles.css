@@ -267,7 +267,7 @@ ul.plain > li.focus { background: var(--color-accent-100); }
 .q-top .when.late { color: var(--color-bad-700); font-weight: 600; }
 .q-why { font-size: 13px; color: var(--color-neutral-800); text-wrap: pretty; }
 .q-next { font-size: 12px; color: var(--color-neutral-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.q-actions { display: flex; gap: 6px; align-items: center; }
+.q-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .empty-row { padding: 28px 18px; text-align: center; color: var(--color-neutral-600); }
 
 /* pipeline by stage */
@@ -368,6 +368,9 @@ th.sortable:hover { color: var(--color-text); }
 .deal-timer.late { border-color: var(--color-bad-700); background: var(--color-bad-100); }
 .deal-timer.late .t-value { color: var(--color-bad-700); }
 .t-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--color-bad-700); animation: t-pulse 1.2s ease-in-out infinite; }
+.deal-timer.compact { flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; padding: 4px 10px; min-width: 128px; }
+.deal-timer.compact .t-label { font-size: 10px; }
+.deal-timer.compact .t-value { font-size: 18px; }
 @keyframes t-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .t-pulse { animation: none; } }
 

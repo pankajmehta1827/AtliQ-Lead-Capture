@@ -31,7 +31,17 @@ function span(ms: number) {
   return { days: d, hms };
 }
 
-export default function DealTimer({ dueDate, today, now }: { dueDate: string; today: string; now: Date }) {
+export default function DealTimer({
+  dueDate,
+  today,
+  now,
+  compact = false,
+}: {
+  dueDate: string;
+  today: string;
+  now: Date;
+  compact?: boolean;
+}) {
   const left = deadline(dueDate).getTime() - appNow(today, now).getTime();
   const late = left < 0;
   const soon = !late && left < 24 * 3600 * 1000;
@@ -39,7 +49,7 @@ export default function DealTimer({ dueDate, today, now }: { dueDate: string; to
   const state = late ? "late" : soon ? "soon" : "ok";
   const label = late ? "Overdue by" : "Due in";
   return (
-    <div className={`deal-timer ${state}`} title={`Follow-up due by end of ${dueDate}`} role="timer" aria-live="off">
+    <div className={`deal-timer ${state}${compact ? " compact" : ""}`} title={`Follow-up due by end of ${dueDate}`} role="timer" aria-live="off">
       <span className="t-label">
         {late && <span className="t-pulse" />}
         {label}

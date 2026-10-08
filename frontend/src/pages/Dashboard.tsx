@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Deal, Reminder, api, money } from "../api";
 import { Icon } from "../components/ui";
+import DealTimer, { useNow } from "../components/DealTimer";
 
 type DraftLite = { id: number; needs_review: boolean; created_at: string };
 type Idea = { id: number };
@@ -29,6 +30,7 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [done, setDone] = useState(0);
   const navigate = useNavigate();
+  const now = useNow();
 
   const load = useCallback(() => {
     const u = encodeURIComponent(user);
@@ -58,11 +60,12 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
       .map((rs) => {
         const sorted = [...rs].sort((a, b) => b.priority - a.priority);
         const oldest = rs.reduce((m, r) => (r.due_date < m ? r.due_date : m), rs[0].due_date);
-        return { ...sorted[0], due_date: oldest, ids: rs.map((r) => r.id), reasons: sorted.map((r) => r.reason) };
+        const deadline = rs.reduce((m, r) => (r.deadline < m ? r.deadline : m), rs[0].deadline);
+        return { ...sorted[0], due_date: oldest, deadline, ids: rs.map((r) => r.id), reasons: sorted.map((r) => r.reason) };
       })
       .sort((a, b) => b.priority - a.priority);
   }, [items]);
-  const overdue = due.filter((r) => r.due_date < today).length;
+  const overdue = due.filter((r) => r.deadline < today).length;
   const newLeads = (from: number, to: number) =>
     team.filter((d) => d.created_date && daysBetween(today, d.created_date) >= from && daysBetween(today, d.created_date) < to).length;
   const leads7 = newLeads(0, 7);
@@ -191,7 +194,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
 
           {items && due.length === 0 && <div className="empty-row">Nothing due today.</div>}
           {due.map((r) => {
-            const late = daysBetween(today, r.due_date);
             const heat = r.priority >= 75 ? "Hot" : r.priority >= 55 ? "Warm" : "Cool";
             return (
               <div className="q-row" key={r.deal_id}>
@@ -203,7 +205,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
                     <span className={`chip ${heat === "Hot" ? "hot" : heat === "Warm" ? "warm" : ""}`} title="Priority: signal type + days overdue + deal value">
                       {heat} · {r.priority}
                     </span>
-                    <span className={`when ${late > 0 ? "late" : ""}`}>{late > 0 ? `Overdue · ${late}d` : "Today"}</span>
                   </div>
                   <span className="q-why">{r.reasons.join(" · ")}</span>
                   <span className="q-next">
@@ -212,6 +213,7 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
                   </span>
                 </div>
                 <div className="q-actions">
+                  <DealTimer dueDate={r.deadline} today={today} now={now} compact />
                   <button className="icon" title="Snooze 1 day" onClick={() => act(r.ids, "snooze")}>
                     <Icon name="clock" size={16} />
                   </button>
