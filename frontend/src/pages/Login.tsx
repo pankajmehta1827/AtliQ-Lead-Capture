@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AppConfig, api, setSession } from "../api";
-import { Corners, Icon } from "../components/ui";
+import { Icon } from "../components/ui";
 
 export default function Login({ config, onLogin }: { config: AppConfig; onLogin: (u: string) => void }) {
   const [user, setUser] = useState(config.users[0] ?? "");
@@ -22,7 +22,6 @@ export default function Login({ config, onLogin }: { config: AppConfig; onLogin:
   return (
     <div className="login">
       <form className="blueprint login-card" onSubmit={submit}>
-        <Corners />
         <div>
           <div className="brand">
             <span className="brand-mark" />
@@ -46,7 +45,6 @@ export default function Login({ config, onLogin }: { config: AppConfig; onLogin:
         )}
         {error && <div className="error">{error}</div>}
         <button className="primary blueprint wide" type="submit">
-          <Corners />
           Continue
           <Icon name="arrow" size={14} />
         </button>

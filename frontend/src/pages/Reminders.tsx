@@ -67,7 +67,6 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
               <div key={r.id} className="card reminder">
                 <div className="row-between">
                   <span className={`chip k-${r.kind}`}>{KIND_LABEL[r.kind] ?? r.kind}</span>
-                  <span className={r.due_date < today ? "overdue small" : "muted small"}>due {r.due_date}</span>
                 </div>
                 <h4>
                   <Link to={`/deals/${r.deal_id}`}>

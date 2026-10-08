@@ -1,15 +1,4 @@
-/** Shared design-system bits: blueprint corner marks and the stroke icons used in the design. */
-
-export function Corners() {
-  return (
-    <>
-      <i className="corner tl" />
-      <i className="corner tr" />
-      <i className="corner bl" />
-      <i className="corner br" />
-    </>
-  );
-}
+/** Shared design-system bits: the stroke icons used in the design. */
 
 const PATHS: Record<string, JSX.Element> = {
   today: (

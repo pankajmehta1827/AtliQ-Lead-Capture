@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Deal, FLAG_LABELS, api, money } from "../api";
-import { Corners } from "../components/ui";
 
 type Metric = { label: string; value: number | null; target: number };
 type Metrics = {
@@ -59,7 +58,6 @@ export default function Pipeline({ user }: { user: string }) {
 
       {metrics && (
         <div className="kpis blueprint">
-          <Corners />
           <Tile label={metrics.pipeline_hygiene.label} value={metrics.pipeline_hygiene.value} target={100}
             sub={`${metrics.pipeline_hygiene.open_deals} open deals`} />
           <Tile label={metrics.north_star.label} value={metrics.north_star.value} target={95} sub={`${metrics.north_star.n} new leads confirmed`} />

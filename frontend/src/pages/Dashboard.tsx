@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Deal, Reminder, api, money } from "../api";
-import { Corners, Icon } from "../components/ui";
+import { Icon } from "../components/ui";
 
 type DraftLite = { id: number; needs_review: boolean; created_at: string };
 type Idea = { id: number };
@@ -137,7 +137,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
 
       <div className="kpi-cards">
         <div className="kpi-card blueprint">
-          <Corners />
           <span className="label">Deals to follow up</span>
           <div className="line">
             <span className="value">{items ? due.length : "—"}</span>
@@ -148,7 +147,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           </span>
         </div>
         <div className="kpi-card blueprint">
-          <Corners />
           <span className="label">New leads · 7d</span>
           <div className="line">
             <span className="value">{leads7}</span>
@@ -160,7 +158,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           <span className="sub">vs. previous 7 days · whole team</span>
         </div>
         <div className="kpi-card blueprint">
-          <Corners />
           <span className="label">Drafts to review</span>
           <div className="line">
             <span className="value">{drafts.length}</span>
@@ -169,7 +166,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           <span className="sub">Captured conversations awaiting you</span>
         </div>
         <div className="kpi-card blueprint">
-          <Corners />
           <span className="label">Deals with a next step</span>
           <div className="line">
             <span className={`value ${hygiene == null ? "" : hygiene >= 100 ? "good" : "bad"}`}>
@@ -185,7 +181,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
 
       <div className="dash-cols">
         <section className="panel blueprint dash-main">
-          <Corners />
           <div className="panel-head">
             <div>
               <h2>Follow-up queue</h2>
@@ -232,7 +227,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
 
         <div className="dash-side">
           <section className="panel blueprint">
-            <Corners />
             <div className="panel-head">
               <div>
                 <h2>Pipeline by stage</h2>
@@ -254,7 +248,6 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           </section>
 
           <section className="panel blueprint">
-            <Corners />
             <div className="panel-head">
               <Icon name="sparkle" size={17} />
               <div>

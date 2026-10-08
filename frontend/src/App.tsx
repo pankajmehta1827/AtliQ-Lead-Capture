@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { AppConfig, Deal, api, getSession, setSession } from "./api";
-import { Corners, Icon, initials } from "./components/ui";
+import { Icon, initials } from "./components/ui";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ReviewQueue from "./pages/ReviewQueue";
@@ -159,7 +159,6 @@ function TopBar({ user, due }: { user: string; due: number }) {
           {due > 0 && <span className="dot" />}
         </button>
         <button className="primary blueprint" onClick={() => navigate("/capture")}>
-          <Corners />
           <Icon name="plus" size={15} />
           New lead
         </button>

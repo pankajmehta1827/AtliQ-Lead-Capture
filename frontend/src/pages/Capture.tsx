@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { SourceItem, api } from "../api";
-import { Corners } from "../components/ui";
 
 type Items = { items: SourceItem[]; counts: Record<string, number> };
 
@@ -100,7 +99,6 @@ export default function Capture({ onChange }: { onChange: () => void }) {
 
       {rerun && rerun.rules_drafts > 0 && (
         <div className="blueprint card">
-          <Corners />
           <div className="row-between">
             <div>
               <h3>Re-run with AI</h3>
@@ -113,7 +111,6 @@ export default function Capture({ onChange }: { onChange: () => void }) {
             </div>
             <div className="row">
               <button className="primary blueprint" disabled={busy || !rerun.llm_enabled} onClick={() => rerunWithAi(20)}>
-                <Corners />
                 Re-run next {Math.min(20, rerun.rules_drafts)}
               </button>
               <button disabled={busy || !rerun.llm_enabled} onClick={() => rerunWithAi(100)}>

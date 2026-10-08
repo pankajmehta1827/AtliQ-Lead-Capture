@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Deal, SERVICES, SOURCES, STAGES, api, getSession, money } from "../api";
-import { Corners, Icon } from "../components/ui";
+import { Icon } from "../components/ui";
 
 type CrmLead = Deal & {
   origin: "crm_export" | "ai_capture" | "manual" | "import";
@@ -158,7 +158,6 @@ export default function CRM({ user }: { user: string }) {
           <button onClick={() => fileRef.current?.click()}>Import CSV / Excel</button>
           <input ref={fileRef} type="file" accept=".csv,.xlsx" hidden onChange={(e) => onImport(e.target.files?.[0])} />
           <button className="primary blueprint" onClick={() => setAdding(true)}>
-            <Corners />
             <Icon name="plus" size={15} />
             Add lead
           </button>
@@ -180,7 +179,6 @@ export default function CRM({ user }: { user: string }) {
 
       {sync && (
         <section className="panel blueprint">
-          <Corners />
           <div className="panel-head">
             <Icon name="sparkle" size={17} />
             <div>
