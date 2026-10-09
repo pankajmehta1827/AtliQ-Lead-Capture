@@ -51,7 +51,7 @@ export default function Pipeline({ user }: { user: string }) {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Leads & pipeline health</h1>
+          <h1>Pipeline</h1>
           <p className="muted">Open deals, flagged first: inactive for more than 14 days, missing next step or proposals unanswered.</p>
         </div>
       </header>

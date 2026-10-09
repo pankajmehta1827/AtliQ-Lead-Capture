@@ -23,6 +23,8 @@ const ROLES: Record<string, string> = {
 
 type Counts = { drafts: number; due: number; leads: number };
 
+type NavItem = { to: string; label: string; icon: string; hint: string; count?: number; badge?: boolean; ai?: boolean };
+
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [user, setUser] = useState<string | null>(getSession()?.user ?? null);
@@ -59,18 +61,43 @@ export default function App() {
   if (!config) return <div className="boot">Connecting to the assistant…</div>;
   if (!user) return <Login config={config} onLogin={(u) => setUser(u)} />;
 
-  const workspace = [
-    { to: "/dashboard", label: "Dashboard", icon: "dashboard", count: counts.due, badge: true },
-    { to: "/ask", label: "Ask AI", icon: "sparkle", ai: true },
-    { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, badge: true },
-    { to: "/leads", label: "Leads", icon: "leads", count: counts.leads },
-    { to: "/crm", label: "CRM", icon: "database" },
-    { to: "/capture", label: "AI Capture", icon: "plus" },
-    { to: "/follow-ups", label: "Follow-ups", icon: "pulse" },
-  ];
-  const admin = [
-    { to: "/summary", label: "Daily summary", icon: "doc" },
-    { to: "/settings", label: "Settings & log", icon: "settings" },
+  // Ordered the way a seller works: act on today's work, bring in new conversations, look up deals,
+  // then insight and admin. Badges sit on the page where the work is done.
+  const sections: { title: string; items: NavItem[] }[] = [
+    {
+      title: "My day",
+      items: [
+        { to: "/dashboard", label: "Dashboard", icon: "dashboard", hint: "Today at a glance" },
+        { to: "/follow-ups", label: "Follow-ups", icon: "bell", count: counts.due, badge: true,
+          hint: "Deals to chase, with live timers" },
+        { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, badge: true,
+          hint: "AI drafts waiting for your confirmation" },
+      ],
+    },
+    {
+      title: "Capture",
+      items: [
+        { to: "/capture", label: "Add conversation", icon: "plus", hint: "Paste, upload or sync emails and meeting notes" },
+      ],
+    },
+    {
+      title: "Deals",
+      items: [
+        { to: "/leads", label: "Pipeline", icon: "leads", count: counts.leads, hint: "Your open deals, flagged first" },
+        { to: "/crm", label: "CRM records", icon: "database", hint: "Every lead: open, won and lost; import and export" },
+      ],
+    },
+    {
+      title: "Insights",
+      items: [
+        { to: "/ask", label: "Ask AI", icon: "sparkle", ai: true, hint: "Ask questions about your pipeline" },
+        { to: "/summary", label: "Daily summary", icon: "doc", hint: "New drafts, due follow-ups, deals going cold" },
+      ],
+    },
+    {
+      title: "Admin",
+      items: [{ to: "/settings", label: "Settings & log", icon: "settings", hint: "Exclusions, pause switch, action log" }],
+    },
   ];
 
   return (
@@ -84,24 +111,19 @@ export default function App() {
       <TopBar user={user} due={counts.due} />
 
       <aside className="sidebar">
-        <span className="nav-label">Workspace</span>
-        <nav>
-          {workspace.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "active" : "")}>
-              <Icon name={n.icon} size={17} />
-              <span className="label">{n.label}</span>
-              {"ai" in n && n.ai ? <span className="ai-tag">AI</span> : null}
-              {"count" in n && n.count ? <span className={`count ${"badge" in n && n.badge ? "badge" : ""}`}>{n.count}</span> : null}
-            </NavLink>
-          ))}
-        </nav>
-        <span className="nav-label second">Admin</span>
-        <nav>
-          {admin.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "active" : "")}>
-              <Icon name={n.icon} size={17} />
-              <span className="label">{n.label}</span>
-            </NavLink>
+        <nav aria-label="Main">
+          {sections.map((sec) => (
+            <div className="nav-group" key={sec.title}>
+              <span className="nav-label">{sec.title}</span>
+              {sec.items.map((n) => (
+                <NavLink key={n.to} to={n.to} title={n.hint} className={({ isActive }) => (isActive ? "active" : "")}>
+                  <Icon name={n.icon} size={17} />
+                  <span className="label">{n.label}</span>
+                  {n.ai ? <span className="ai-tag">AI</span> : null}
+                  {n.count ? <span className={`count ${n.badge ? "badge" : ""}`}>{n.count}</span> : null}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="sidebar-status">

@@ -170,8 +170,9 @@ button.icon .dot { position: absolute; top: 7px; right: 7px; width: 7px; height:
 .search-results a:hover { background: var(--color-accent-100); text-decoration: none; }
 
 .sidebar { grid-area: 2 / 1; border-right: 1px solid var(--color-divider); display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 16px 0; }
-.nav-label { padding: 0 20px 8px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); }
-.nav-label.second { padding-top: 18px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group + .nav-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--color-neutral-200); }
+.nav-label { padding: 0 10px 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); }
 .sidebar nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
 .sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; color: var(--color-text); text-decoration: none; font-size: 14px; }
 .sidebar nav a:hover { background: var(--color-accent-100); color: var(--color-text); text-decoration: none; }
@@ -438,6 +439,8 @@ details.sources li { display: flex; flex-direction: column; gap: 2px; }
   .topbar-right { margin-left: 0; }
   .sidebar { grid-area: auto; border-right: none; border-bottom: 1px solid var(--color-divider); padding: 0; }
   .nav-label, .sidebar-status, .user-block { display: none; }
+  .nav-group { flex-direction: row; }
+  .nav-group + .nav-group { margin-top: 0; padding-top: 0; border-top: none; border-left: 1px solid var(--color-neutral-200); }
   .sidebar nav { flex-direction: row; overflow-x: auto; padding: 0 6px; }
   .sidebar nav a { white-space: nowrap; }
   .main { grid-area: auto; overflow: visible; }
