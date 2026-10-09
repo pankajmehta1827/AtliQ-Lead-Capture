@@ -28,7 +28,7 @@ Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 | **Dashboard** | KPI cards (deals to follow up, new leads in the last 7 days, drafts to review, % of deals with a next step), a follow-up queue with one row per deal, a **live timer** and **Draft reply**, pipeline by stage, and insights such as *"FinEdge Bank ($95k) is going cold"* |
 | **Ask AI** | Ask your pipeline in plain English (*"What's blocking FinEdge?"*, *"Which proposals have had no reply for 30 days?"*). Answers come only from the CRM and saved conversations, with linked deals and quotes, and unverified quotes are flagged |
 | **Review queue** | AI drafts waiting for the owner. Click any field to highlight the sentence it came from. Choose which CRM record to update or create a new lead, edit, then **Confirm** or **Discard**. Drafts split out of an internal meeting are tagged *From internal meeting* |
-| **Leads** | Open pipeline, flagged first: inactive for more than 14 days, no next step, proposal unanswered |
+| **Pipeline** | Two views of the open deals, switched with **Board / Queue** (the choice is remembered). **Board:** health cards (deals with a next step, new leads logged in 24h, drafts approved as written, value at risk), search, owner filter (including *Unassigned*) and *Needs attention only*, then one column per stage (New, Contacted, Proposal Sent) with its total value and attention bar. Deal cards show owner, days idle, next step and flags; **Assign owner** and **Add next step** save right from the card, logged like any deal edit. **Queue:** proposals awaiting a reply with **Draft reply**, deals without an owner with an owner picker, other deals missing a next step, and flagged value by owner |
 | **CRM** | Every lead (open, won and lost) with where it came from (*CRM export / AI capture / Manual / Import*), an **AI Lead app → CRM** sync panel, Add lead with a duplicate check, CSV/Excel import and export |
 | **AI Capture** | Paste an email, meeting note or LinkedIn chat; upload files; sync the sample mailbox and calendar; **Re-run with AI** for drafts made without a key |
 | **Follow-ups** | One card per deal with a live **Due in / Overdue by** timer (green, amber, or red and pulsing), most overdue first. **Draft reply** / Done / Snooze / Dismiss. *Revisit date* reminders come from the date detector |
@@ -197,7 +197,7 @@ backend/
   tests/            pytest suite
   run_local.py      no-Docker runner (SQLite)
 frontend/src/
-  pages/            Dashboard, ReviewQueue, Pipeline (Leads), CRM, Capture, Reminders (Follow-ups), Summary, Settings, DealDetail
+  pages/            Dashboard, ReviewQueue, Pipeline (stage board + action queue), CRM, Capture, Reminders (Follow-ups), Summary, Settings, DealDetail
   components/       DealTimer (live timers), SourceView (evidence highlight), ui (icons)
 Dockerfile · docker-compose.yml · railway.json
 ```
