@@ -45,10 +45,11 @@ export default function App() {
     const u = encodeURIComponent(user);
     Promise.all([
       api<unknown[]>(`/api/drafts?owner=${u}`),
-      api<unknown[]>(`/api/reminders?due_only=true&owner=${u}`),
+      api<{ deal_id: number }[]>(`/api/reminders?due_only=true&owner=${u}`),
       api<unknown[]>(`/api/deals?owner=${u}`),
     ])
-      .then(([d, r, l]) => setCounts({ drafts: d.length, due: r.length, leads: l.length }))
+      // count deals, not reminders: a deal with two signals is one follow-up (matches Dashboard and Follow-ups)
+      .then(([d, r, l]) => setCounts({ drafts: d.length, due: new Set(r.map((x) => x.deal_id)).size, leads: l.length }))
       .catch(() => undefined);
   }, [user]);
 
@@ -184,7 +185,7 @@ function TopBar({ user, due }: { user: string; due: number }) {
           <Icon name="sparkle" size={15} />
           Ask AI
         </button>
-        <button className="icon" title={`${due} follow-up(s) due`} onClick={() => navigate("/follow-ups")}>
+        <button className="icon" title={`${due} deal${due === 1 ? "" : "s"} to follow up`} onClick={() => navigate("/follow-ups")}>
           <Icon name="bell" size={18} />
           {due > 0 && <span className="dot" />}
         </button>
