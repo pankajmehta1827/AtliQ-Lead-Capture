@@ -84,7 +84,7 @@ export default function Capture({ onChange }: { onChange: () => void }) {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Capture</h1>
+          <h1>Add conversation</h1>
           <p className="muted">
             Connect conversations to the assistant. Personal and excluded items are skipped and never stored.
           </p>

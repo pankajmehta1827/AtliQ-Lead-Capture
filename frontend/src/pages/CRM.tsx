@@ -146,7 +146,7 @@ export default function CRM({ user }: { user: string }) {
       <div className="page-head">
         <div>
           <span className="crumb">Home</span>
-          <h1>CRM</h1>
+          <h1>CRM records</h1>
           <span className="muted">
             {totals.all} leads · {totals.open} open ({money(totals.openValue)}) · {totals.won} won. The system of record the AI Lead
             app writes into.
