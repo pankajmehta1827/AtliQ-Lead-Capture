@@ -70,6 +70,7 @@ export default function ReviewQueue({ user, onChange }: { user: string; onChange
                   </span>
                   {d.needs_review && <span className="chip warn">Needs review</span>}
                   {d.duplicate_candidates.length > 1 && <span className="chip dup">Possible duplicate</span>}
+                  {d.source?.category === "internal_multi_deal" && <span className="chip ghost">From internal meeting</span>}
                   <span className="chip ghost">{d.owner}</span>
                 </div>
               </li>

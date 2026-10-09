@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Deal, Reminder, api, money } from "../api";
 import { Icon } from "../components/ui";
 import DealTimer, { useNow } from "../components/DealTimer";
+import EmailDraftPanel from "../components/EmailDraftPanel";
 
 type DraftLite = { id: number; needs_review: boolean; created_at: string };
 type Idea = { id: number };
@@ -31,6 +32,7 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
   const [done, setDone] = useState(0);
   const navigate = useNavigate();
   const now = useNow();
+  const [emailFor, setEmailFor] = useState<{ dealId: number; company: string | null; ids: number[] } | null>(null);
 
   const load = useCallback(() => {
     const u = encodeURIComponent(user);
@@ -217,6 +219,9 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
                   <button className="icon" title="Snooze 1 day" onClick={() => act(r.ids, "snooze")}>
                     <Icon name="clock" size={16} />
                   </button>
+                  <button className="ai-action" onClick={() => setEmailFor({ dealId: r.deal_id, company: r.company, ids: r.ids })}>
+                    Draft reply
+                  </button>
                   <button onClick={() => navigate(`/deals/${r.deal_id}`)}>Open deal</button>
                   <button className="primary" onClick={() => act(r.ids, "done")}>
                     Mark done
@@ -267,6 +272,9 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           </section>
         </div>
       </div>
+      {emailFor && (
+        <EmailDraftPanel dealId={emailFor.dealId} company={emailFor.company} reminderIds={emailFor.ids} onClose={() => setEmailFor(null)} />
+      )}
     </div>
   );
 }

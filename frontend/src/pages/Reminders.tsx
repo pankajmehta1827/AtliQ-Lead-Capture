@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Reminder, api, money } from "../api";
+import { REMINDER_KIND_LABEL, Reminder, api, money } from "../api";
+import EmailDraftPanel from "../components/EmailDraftPanel";
 import DealTimer, { useNow } from "../components/DealTimer";
-
-const KIND_LABEL: Record<string, string> = {
-  commitment: "Commitment",
-  proposal_unanswered: "Proposal unanswered",
-  inactive: "Inactive deal",
-  no_next_step: "No next step",
-};
 
 type DealGroup = {
   deal_id: number;
@@ -27,6 +21,7 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
   const [items, setItems] = useState<Reminder[]>([]);
   const [today, setToday] = useState<string>("");
   const now = useNow();
+  const [emailFor, setEmailFor] = useState<DealGroup | null>(null);
 
   const load = useCallback(() => {
     api<{ today: string }>("/api/config").then((c) => setToday(c.today));
@@ -116,7 +111,7 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
                 <ul className="reasons">
                   {g.items.map((r) => (
                     <li key={r.id}>
-                      <span className={`chip k-${r.kind}`}>{KIND_LABEL[r.kind] ?? r.kind}</span>
+                      <span className={`chip k-${r.kind}`}>{REMINDER_KIND_LABEL[r.kind] ?? r.kind}</span>
                       <span>{r.reason}</span>
                       {r.suggested_next_step && (
                         <span className="small">
@@ -136,6 +131,9 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
                   <button className="primary" onClick={() => act(g.items.map((r) => r.id), "done")}>
                     Done
                   </button>
+                  <button className="ai-action" onClick={() => setEmailFor(g)}>
+                    Draft reply
+                  </button>
                   <button onClick={() => act(g.items.map((r) => r.id), "snooze", 3)}>Snooze 3d</button>
                   <button onClick={() => act(g.items.map((r) => r.id), "dismiss")}>Dismiss</button>
                   <span className="muted small">{g.owner ?? "no owner"}</span>
@@ -145,6 +143,14 @@ export default function Reminders({ user, onChange }: { user: string; onChange: 
           </div>
         </section>
       ))}
+      {emailFor && (
+        <EmailDraftPanel
+          dealId={emailFor.deal_id}
+          company={emailFor.company}
+          reminderIds={emailFor.items.map((r) => r.id)}
+          onClose={() => setEmailFor(null)}
+        />
+      )}
     </div>
   );
 }

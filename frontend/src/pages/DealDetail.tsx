@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Deal, FLAG_LABELS, Reminder, STAGES, SourceItem, api, money } from "../api";
+import EmailDraftPanel from "../components/EmailDraftPanel";
 
 type Detail = {
   deal: Deal;
@@ -22,6 +23,7 @@ export default function DealDetail() {
   const [data, setData] = useState<Detail | null>(null);
   const [edit, setEdit] = useState<Partial<Deal>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const load = useCallback(() => {
     api<Detail>(`/api/deals/${id}`).then((d) => {
@@ -65,6 +67,9 @@ export default function DealDetail() {
       <header className="page-head">
         <div>
           <h1>{d.company}</h1>
+          <button className="ai-action deal-email-btn" onClick={() => setEmailOpen(true)}>
+            Draft follow-up email
+          </button>
           <p className="muted">
             {d.lead_code} · {d.contact_name ?? "no contact"} {d.contact_email && `<${d.contact_email}>`} · {d.source ?? "source unknown"} ·{" "}
             {d.service_interest ?? "service unknown"} · {money(d.est_value_usd)}
@@ -79,6 +84,7 @@ export default function DealDetail() {
         </div>
       </header>
 
+      {emailOpen && <EmailDraftPanel dealId={d.id} company={d.company} onClose={() => setEmailOpen(false)} />}
       {data.pending_drafts.length > 0 && (
         <div className="notice">
           {data.pending_drafts.length} draft update(s) waiting in the <Link to="/review">review queue</Link>.

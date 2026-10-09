@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Category = Literal["new_lead", "existing_deal", "existing_client", "not_sales"]
+Category = Literal["new_lead", "existing_deal", "existing_client", "internal_multi_deal", "not_sales"]
 
 
 class _Strict(BaseModel):
@@ -20,8 +20,9 @@ class Classification(_Strict):
         description=(
             "new_lead: a prospect/company AtliQ has not sold to before. existing_deal: an ongoing opportunity "
             "(proposal, negotiation, follow-up). existing_client: a company AtliQ already delivered work for, "
-            "talking about support, renewal or new needs. not_sales: personal, recruiting, vendor/admin, "
-            "newsletters, or internal discussion that covers many deals at once."
+            "talking about support, renewal or new needs. internal_multi_deal: an internal AtliQ meeting note "
+            "or email that discusses several specific client deals (e.g. a pipeline review). not_sales: "
+            "personal, recruiting, vendor/admin, newsletters, or internal talk that names no specific client deal."
         )
     )
     confidence: float = Field(description="How sure you are, between 0 and 1.")
@@ -79,3 +80,62 @@ class CrossSellIdea(_Strict):
 
 class CrossSell(_Strict):
     ideas: list[CrossSellIdea] | None = Field(description="Empty list if there is no evidence of a need.")
+
+
+# ---------------------------------------------------------------- revisit / date signals (#2)
+
+class DateSignal(_Strict):
+    phrase: str = Field(description="The time expression exactly as written, e.g. 'likely Q2 2026', 'now scheduled for 14 July'.")
+    resolved_date: str | None = Field(description="ISO date YYYY-MM-DD it refers to; quarters = first day of the quarter; null if it cannot be resolved.")
+    kind: Literal["revisit", "deadline", "meeting", "decision", "other"] = Field(
+        description="revisit: client asked to reconnect later / deal paused until then. deadline: something is due. "
+        "meeting: a call or meeting is planned. decision: a client decision or approval is expected. other: anything else."
+    )
+    what: str = Field(description="What should happen on that date, phrased as an action for AtliQ, e.g. 'Check back with James after the acquisition closes'.")
+    evidence: str = Field(description="Verbatim quote containing the time expression. Max 25 words; never include double-quote characters.")
+
+
+class DateSignals(_Strict):
+    signals: list[DateSignal] | None = Field(description="Every FUTURE-looking time reference relevant to the deal. Empty list if none.")
+
+
+# ---------------------------------------------------------------- internal notes covering several deals (#1)
+
+class DealMention(_Strict):
+    company: str = Field(description="Client company the point is about, as written.")
+    lead_code: str | None = Field(description="CRM id like L-1023 if the note cites one, else null.")
+    update: str = Field(description="One sentence: what the note says about this deal (status, blocker, decision).")
+    next_step: str | None = Field(description="The action AtliQ should take for this deal, if stated or clearly implied.")
+    next_step_date: str | None = Field(description="ISO date for that action or deadline, if stated or inferable.")
+    owner: str | None = Field(description="AtliQ person who owns or took the action, if named.")
+    evidence: str = Field(description="Verbatim quote from the note about this deal. Max 25 words; never include double-quote characters.")
+
+
+class MultiDeal(_Strict):
+    deals: list[DealMention] | None = Field(description="One entry per client deal discussed. Empty list if none.")
+
+
+# ---------------------------------------------------------------- follow-up email draft (#4)
+
+class Fact(_Strict):
+    fact: str = Field(description="A fact the email relies on.")
+    evidence: str = Field(description="Verbatim quote from the CONTEXT supporting it. Max 25 words; never include double-quote characters.")
+
+
+class EmailDraft(_Strict):
+    subject: str
+    body: str = Field(description="Plain-text email body, greeting to sign-off. No placeholders except [your availability].")
+    facts: list[Fact] | None = Field(description="Every client-specific fact used in the email, each with a quote from the context.")
+
+
+# ---------------------------------------------------------------- ask your pipeline (#5)
+
+class Citation(_Strict):
+    lead_code: str | None = Field(description="CRM id the quote belongs to, if any.")
+    quote: str = Field(description="Verbatim quote from the CONTEXT that supports the answer. Max 25 words; never include double-quote characters.")
+
+
+class PipelineAnswer(_Strict):
+    answer: str = Field(description="Direct answer in plain language. Short paragraphs or '- ' bullet lines. Say plainly if the context does not contain the answer.")
+    deals: list[str] | None = Field(description="CRM ids (L-xxxx) the answer is about.")
+    citations: list[Citation] | None = Field(description="Quotes from the context that support the answer.")

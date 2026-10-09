@@ -192,3 +192,34 @@ export const SOURCES = ["Referral", "LinkedIn", "Conference", "Website", "Cold O
 
 export const money = (v: number | null) =>
   v == null ? "—" : `$${v >= 1000 ? `${Math.round(v / 1000)}k` : v.toFixed(0)}`;
+
+// ---------------------------------------------------------------- AI assist (#4 email drafts, #5 ask)
+
+export type GroundedFact = { fact: string; evidence: string; grounded: boolean };
+
+export type EmailDraft = {
+  deal_id: number;
+  lead_code: string;
+  to_name: string | null;
+  to_email: string | null;
+  subject: string;
+  body: string;
+  facts: GroundedFact[];
+  mode: "llm" | "rules";
+  unverified: number;
+};
+
+export type AskAnswer = {
+  answer: string;
+  deals: { lead_code: string; deal_id: number; company: string | null }[];
+  citations: { lead_code: string | null; quote: string; grounded: boolean }[];
+  mode: "llm" | "rules";
+};
+
+export const REMINDER_KIND_LABEL: Record<string, string> = {
+  commitment: "Commitment",
+  revisit: "Revisit date",
+  proposal_unanswered: "Proposal unanswered",
+  inactive: "Inactive deal",
+  no_next_step: "No next step",
+};
