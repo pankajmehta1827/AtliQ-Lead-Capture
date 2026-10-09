@@ -8,6 +8,27 @@ from .models import AuditLog, CrossSellSuggestion, Deal, Draft, ExclusionRule, R
 from .services.pipeline_health import deal_flags, reminder_deadline, reminder_priority
 
 
+def friendly_error(text: str | None) -> str | None:
+    """Plain-language reason for a processing failure. Raw provider errors name the model and account,
+    which the UI should not show; the full text stays in the database for debugging."""
+    if not text:
+        return None
+    low = text.lower()
+    if "ratelimit" in low or "rate limit" in low or "429" in low:
+        return "AI usage limit reached; it is retried automatically when the limit resets."
+    if "badrequest" in low or "json" in low or "400" in low:
+        return "The AI returned an unusable answer; it is retried automatically."
+    if "timeout" in low or "connect" in low:
+        return "The AI service could not be reached; it is retried automatically."
+    return "Processing failed; it is retried automatically."
+
+
+def _clean_details(details: dict | None) -> dict:
+    if not details:
+        return {}
+    return {k: (friendly_error(v) if k == "error" and isinstance(v, str) else v) for k, v in details.items()}
+
+
 def _iso(v: Any) -> str | None:
     return v.isoformat() if v is not None else None
 
@@ -19,7 +40,7 @@ def source_item(si: SourceItem | None, with_body: bool = False) -> dict | None:
         "id": si.id, "channel": si.channel, "external_ref": si.external_ref, "subject": si.subject,
         "sender_name": si.sender_name, "sender_email": si.sender_email, "participants": si.participants or [],
         "occurred_at": _iso(si.occurred_at), "status": si.status, "category": si.category,
-        "skip_reason": si.skip_reason, "attempts": si.attempts, "last_error": si.last_error,
+        "skip_reason": si.skip_reason, "attempts": si.attempts, "last_error": friendly_error(si.last_error),
         "ingested_by": si.ingested_by, "created_at": _iso(si.created_at), "processed_at": _iso(si.processed_at),
     }
     if with_body:
@@ -89,4 +110,4 @@ def exclusion(e: ExclusionRule) -> dict:
 
 def audit(a: AuditLog) -> dict:
     return {"id": a.id, "ts": _iso(a.ts), "actor": a.actor, "action": a.action, "entity_type": a.entity_type,
-            "entity_id": a.entity_id, "source_ref": a.source_ref, "outcome": a.outcome, "details": a.details}
+            "entity_id": a.entity_id, "source_ref": a.source_ref, "outcome": a.outcome, "details": _clean_details(a.details)}

@@ -102,7 +102,6 @@ export type AppConfig = {
   users: string[];
   requires_access_code: boolean;
   llm_mode: "llm" | "rules";
-  model: string | null;
   today: string;
   processing_enabled: boolean;
   inactive_days: number;

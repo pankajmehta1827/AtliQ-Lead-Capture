@@ -38,7 +38,7 @@ export default function Capture({ onChange }: { onChange: () => void }) {
     run(
       () => api<{ requeued: number }>(`/api/capture/rerun?limit=${limit}`, { method: "POST" }),
       (r) =>
-        `Re-running ${r.requeued} conversation(s) with AI. New drafts replace the rules-mode ones in the review queue as they finish (about 1–2 per minute on the Groq free tier).`,
+        `Re-running ${r.requeued} conversation(s) with AI. New drafts replace the rules-mode ones in the review queue as they finish (about 1–2 per minute).`,
     );
 
   const syncSample = () =>
@@ -104,8 +104,8 @@ export default function Capture({ onChange }: { onChange: () => void }) {
               <h3>Re-run with AI</h3>
               <p className="muted small" style={{ margin: 0 }}>
                 {rerun.rules_drafts} draft(s) in the review queue were made in rules mode (before an AI key was set), so their
-                confidence is low. Re-running replaces them with AI drafts. Each conversation uses about 3–5k Groq tokens; the free
-                tier allows roughly 200k a day, so run it in batches.
+                confidence is low. Re-running replaces them with AI drafts. The AI has a daily usage allowance, so run it in
+                batches.
                 {rerun.queued > 0 && <strong> {rerun.queued} conversation(s) are processing now.</strong>}
               </p>
             </div>
