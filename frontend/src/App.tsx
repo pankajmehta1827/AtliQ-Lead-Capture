@@ -129,7 +129,7 @@ export default function App() {
         </nav>
         <div className="sidebar-status">
           <span className={`mode ${config.llm_mode}`}>
-            {config.llm_mode === "llm" ? `AI · ${config.model}` : "Rules mode · no LLM key"}
+            {config.llm_mode === "llm" ? "AI assistant on" : "AI off · rules mode"}
           </span>
           {!config.processing_enabled && <span className="mode paused">Processing paused</span>}
         </div>

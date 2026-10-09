@@ -73,3 +73,12 @@ def test_grounding_ignores_values_quoted_from_crm_context():
     out, dropped = ground_extraction(ex, src, crm)
     assert out["stage"]["value"] is None and dropped == []  # repeats CRM: not new, not an error
     assert out["timeline"]["value"] == "October"
+
+
+def test_friendly_error_hides_provider_details():
+    from app.serializers import friendly_error
+
+    raw = "RateLimitError: Error code: 429 - Rate limit reached for model `openai/gpt-oss-120b` in organization `org_x`"
+    msg = friendly_error(raw)
+    assert "gpt" not in msg and "org_" not in msg and "limit" in msg
+    assert friendly_error(None) is None
