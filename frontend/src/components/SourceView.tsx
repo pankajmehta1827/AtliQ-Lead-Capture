@@ -18,7 +18,7 @@ export default function SourceView({ source, highlight }: { source: SourceItem |
       content = (
         <>
           {flat.slice(0, idx)}
-          <mark ref={(el) => el?.scrollIntoView({ block: "center", behavior: "smooth" })}>{flat.slice(idx, end)}</mark>
+          <mark ref={(el) => { el?.scrollIntoView({ block: "center", behavior: "smooth" }); }}>{flat.slice(idx, end)}</mark>
           {flat.slice(end)}
         </>
       );

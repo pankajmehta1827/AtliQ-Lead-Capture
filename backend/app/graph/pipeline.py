@@ -1,7 +1,8 @@
 """LangGraph capture pipeline — implements the PRD decision flow:
 
-  exclusions -> mask -> classify -> extract -> ground -> match -> assess -> (cross-sell) -> END
-       |                   |
+  exclusions -> mask -> classify -> extract -> ground -> dates -> match -> assess -> (cross-sell) -> END
+       |                   |    \
+       |                   |     +-- internal note about several deals -> multi_extract -> END (one draft per deal)
        +-- skip & log -----+-- not sales: skip & log
 
 The graph never writes to the CRM. It returns a proposed draft; persistence and the review queue
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 from ..catalogue import service_names
 from ..config import get_settings
 from ..masking import mask_sensitive
-from ..matching import CLOSED_STATUSES, company_similarity, find_matches
+from ..matching import CLOSED_STATUSES, company_similarity, find_matches, normalize_company
 from ..models import Deal, ExclusionRule
 from ..parsing import email_domain, is_internal
 from . import heuristics
@@ -53,6 +54,9 @@ class CaptureState(TypedDict, total=False):
     missing_fields: list[str]
     followups: list[dict]
     crosssell: list[dict]
+    mentioned: list[dict]
+    date_signals: list[dict]
+    multi_updates: list[dict]
     llm_mode: str
     trace: list[str]
 
@@ -73,6 +77,46 @@ def _external_emails(item: dict) -> list[str]:
 def _conversation_text(item: dict, body: str) -> str:
     header = f"Channel: {item.get('channel')}\nDate: {item.get('occurred_at')}\nSubject: {item.get('subject')}\n"
     return header + "\n" + body[:6000]  # keeps a call well inside small tokens-per-minute tiers
+
+
+_GENERIC_KEYS = {"group", "health", "data", "global", "smart", "city", "green", "blue", "the", "first", "trust", "cloud"}
+
+
+def _mentioned_deals(db: Session, text: str) -> list[dict]:
+    """CRM deals named in the text by lead id or by a distinctive company word (e.g. 'FinEdge', 'NovaPharma')."""
+    low = text.lower()
+    out, seen = [], set()
+    for deal in db.scalars(select(Deal)).all():
+        name = deal.company.name if deal.company else ""
+        key = (normalize_company(name).split() or [""])[0]
+        hit = deal.lead_code in text or (
+            len(key) >= 4 and key not in _GENERIC_KEYS and re.search(rf"\b{re.escape(key)}", low)
+        )
+        if hit and deal.company_id not in seen:
+            seen.add(deal.company_id)
+            out.append({"deal_id": deal.id, "lead_code": deal.lead_code, "company": name, "owner": deal.owner,
+                        "status": deal.status, "key": key})
+    return out
+
+
+def _iso_or_none(value: Any, not_before: date | None = None) -> str | None:
+    try:
+        d = date.fromisoformat(str(value)[:10])
+    except (TypeError, ValueError):
+        return None
+    if not_before and d < not_before:
+        return None
+    return d.isoformat()
+
+
+def _item_date(item: dict) -> date:
+    occurred = item.get("occurred_at")
+    if isinstance(occurred, date):
+        return occurred
+    try:
+        return date.fromisoformat(str(occurred)[:10])
+    except (TypeError, ValueError):
+        return get_settings().today()
 
 
 # ---------------------------------------------------------------- nodes
@@ -113,6 +157,7 @@ def classify(state: CaptureState, config: RunnableConfig) -> CaptureState:
     ext = _external_emails(item)
     pre = find_matches(db, company=None, emails=ext) if ext else []
     all_internal = not ext
+    mentioned = _mentioned_deals(db, state["masked_body"]) if all_internal else []
     crm_hint = (
         "; ".join(f"{m['lead_code']} {m['company']} (status {m['status']})" for m in pre[:3]) or "no CRM record found"
     )
@@ -123,19 +168,24 @@ def classify(state: CaptureState, config: RunnableConfig) -> CaptureState:
             {
                 "conversation": _conversation_text(item, state["masked_body"]),
                 "crm_hint": crm_hint,
+                "mentioned": "; ".join(f"{m['lead_code']} {m['company']}" for m in mentioned) or "none",
                 "internal_domain": prompt_constants()["internal_domain"],
             }
         ).model_dump()
         result["confidence"] = min(1.0, max(0.0, float(result["confidence"])))
         mode = "llm"
     else:
-        result = heuristics.classify({**item, "body": state["masked_body"]}, bool(pre), all_internal)
+        result = heuristics.classify({**item, "body": state["masked_body"]}, bool(pre), all_internal, len(mentioned))
         mode = "rules"
 
     skip = result["category"] == "not_sales" and result["confidence"] >= 0.6
+    if result["category"] == "internal_multi_deal" and not mentioned:
+        # a client email is never a multi-deal internal note; fall back to the normal path
+        result["category"] = "existing_deal" if pre else ("not_sales" if all_internal else "new_lead")
     out: CaptureState = {
         "classification": result,
         "pre_matches": pre,
+        "mentioned": mentioned,
         "llm_mode": mode,
         "trace": _trace(state, f"classified: {result['category']} ({result['confidence']:.2f}) via {mode}"),
     }
@@ -190,6 +240,100 @@ def ground(state: CaptureState) -> CaptureState:
         "dropped_fields": dropped,
         "trace": _trace(state, f"grounding: dropped {dropped or 'none'}"),
     }
+
+
+def dates(state: CaptureState) -> CaptureState:
+    """#2 Revisit-date detector: a focused pass for future time references the extraction may miss
+    ("check back around Q2", "decision deferred to the 14 July board"). Evidence-checked like every field."""
+    s = get_settings()
+    item = state["item"]
+    convo_date = _item_date(item)
+    source = _conversation_text(item, state["masked_body"])
+    if s.llm_enabled:
+        from .llm import dates_chain
+
+        result = dates_chain().invoke({
+            "conversation": source, "today": s.today().isoformat(), "item_date": convo_date.isoformat(),
+        })
+        signals = [x.model_dump() for x in (result.signals or [])]
+    else:
+        signals = heuristics.date_signals(state["masked_body"], convo_date)
+    kept = []
+    for sig in signals:
+        resolved = _iso_or_none(sig.get("resolved_date"), not_before=convo_date)
+        if resolved and evidence_in_source(sig.get("evidence"), source):
+            kept.append({**sig, "resolved_date": resolved})
+    found = [(x["kind"], x["resolved_date"]) for x in kept] or "none"
+    return {"date_signals": kept, "trace": _trace(state, f"dates: {found}")}
+
+
+def multi_extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
+    """#1 An internal note about several deals becomes one small update draft per deal it mentions."""
+    s = get_settings()
+    db = _db(config)
+    item = state["item"]
+    convo_date = _item_date(item)
+    source = _conversation_text(item, state["masked_body"])
+    mentioned = state.get("mentioned") or []
+    if s.llm_enabled:
+        from .llm import multi_chain
+
+        result = multi_chain().invoke({
+            "conversation": source, "today": s.today().isoformat(), "item_date": convo_date.isoformat(),
+            "deals": "; ".join(f"{m['lead_code']} {m['company']}" for m in mentioned) or "none listed",
+        })
+        raw = [x.model_dump() for x in (result.deals or [])]
+    else:
+        raw = heuristics.multi_deal(state["masked_body"], mentioned, convo_date)
+
+    updates, used = [], set()
+    by_code = {m["lead_code"]: m for m in mentioned}
+    for r in raw:
+        if not evidence_in_source(r.get("evidence"), source):
+            continue
+        target = by_code.get(r.get("lead_code") or "")
+        if not target:
+            cands = find_matches(db, company=r.get("company"), emails=[])
+            best = next((c for c in cands if c["score"] >= 0.85), None)
+            if best:
+                target = {"deal_id": best["deal_id"], "lead_code": best["lead_code"],
+                          "company": best["company"], "owner": best["owner"]}
+        if target and target["deal_id"] in used:
+            continue  # one draft per deal
+        when = _iso_or_none(r.get("next_step_date"), not_before=convo_date)
+        ev = r.get("evidence")
+        fields = {
+            "next_step": {"value": r.get("next_step"), "evidence": ev if r.get("next_step") else None,
+                          "confidence": 0.7 if r.get("next_step") else 0.0},
+            "next_step_date": {"value": when, "evidence": ev if when else None, "confidence": 0.7 if when else 0.0},
+        }
+        followups = []
+        if when:
+            followups.append({"reason": r.get("next_step") or r["update"], "due_date": when,
+                              "suggested_next_step": r.get("next_step") or "Follow up", "owner_is_atliq": True,
+                              "evidence": ev, "kind": "commitment"})
+        if target:
+            used.add(target["deal_id"])
+            updates.append({
+                "kind": "update", "category": "existing_deal", "deal_id": target["deal_id"],
+                "owner": target.get("owner") or state.get("ingested_by"), "fields": fields,
+                "summary": f"From internal note: {r['update']}", "followups": followups,
+                "confidence": 0.7 if r.get("next_step") else 0.5, "needs_review": True,
+                "missing_fields": [] if r.get("next_step") else ["next_step"],
+                "matches": [{"deal_id": target["deal_id"], "lead_code": target["lead_code"], "company": target["company"],
+                             "contact": None, "status": None, "owner": target.get("owner"), "service_interest": None,
+                             "score": 1.0, "reasons": ["named in the internal note"]}],
+            })
+        else:  # a company the CRM doesn't know yet: suggest it as a new lead, for review
+            fields["company"] = {"value": r.get("company"), "evidence": ev, "confidence": 0.6}
+            fields["requirement"] = {"value": r["update"], "evidence": ev, "confidence": 0.5}
+            updates.append({
+                "kind": "new_lead", "category": "new_lead", "deal_id": None, "owner": state.get("ingested_by"),
+                "fields": fields, "summary": f"From internal note: {r['update']}", "followups": followups,
+                "confidence": 0.4, "needs_review": True, "missing_fields": ["contact_name"], "matches": [],
+            })
+    return {"multi_updates": updates,
+            "trace": _trace(state, f"multi-deal note: {len(updates)} update(s) from {len(raw)} mention(s)")}
 
 
 def match(state: CaptureState, config: RunnableConfig) -> CaptureState:
@@ -303,6 +447,28 @@ def assess(state: CaptureState, config: RunnableConfig) -> CaptureState:
             }
         )
 
+    # #2 date signals: add any dated item the extraction didn't already cover
+    known = {f.get("due_date") for f in followups}
+    labels = {"revisit": "Revisit", "deadline": "Deadline", "meeting": "Meeting", "decision": "Client decision",
+              "other": "Date"}
+    for sig in state.get("date_signals") or []:
+        if sig["resolved_date"] in known:
+            if sig["kind"] == "revisit":  # same date already listed: label it as a revisit
+                for f in followups:
+                    if f.get("due_date") == sig["resolved_date"]:
+                        f["kind"] = "revisit"
+            continue
+        known.add(sig["resolved_date"])
+        followups.append({
+            "reason": f"{labels.get(sig['kind'], 'Date')}: {sig['what']}",
+            "due_date": sig["resolved_date"],
+            "suggested_next_step": sig["what"],
+            "owner_is_atliq": True,
+            "evidence": sig["evidence"],
+            "kind": "revisit" if sig["kind"] == "revisit" else "commitment",
+            "detector": "dates",
+        })
+
     duplicates_in_crm = len([m for m in matches if m["score"] >= 0.9]) > 1
     needs_review = (
         confidence < s.confidence_threshold
@@ -359,7 +525,9 @@ def _after_exclusions(state: CaptureState) -> str:
 
 
 def _after_classify(state: CaptureState) -> str:
-    return "end" if state.get("skipped") else "extract"
+    if state.get("skipped"):
+        return "end"
+    return "multi" if state["classification"]["category"] == "internal_multi_deal" else "extract"
 
 
 def _after_assess(state: CaptureState) -> str:
@@ -373,6 +541,8 @@ def build_graph():
     g.add_node("classify", classify)
     g.add_node("extract", extract)
     g.add_node("ground", ground)
+    g.add_node("dates", dates)
+    g.add_node("multi_extract", multi_extract)
     g.add_node("match", match)
     g.add_node("assess", assess)
     g.add_node("crosssell", crosssell)
@@ -380,9 +550,11 @@ def build_graph():
     g.add_edge(START, "check_exclusions")
     g.add_conditional_edges("check_exclusions", _after_exclusions, {"end": END, "mask": "mask"})
     g.add_edge("mask", "classify")
-    g.add_conditional_edges("classify", _after_classify, {"end": END, "extract": "extract"})
+    g.add_conditional_edges("classify", _after_classify, {"end": END, "extract": "extract", "multi": "multi_extract"})
+    g.add_edge("multi_extract", END)
     g.add_edge("extract", "ground")
-    g.add_edge("ground", "match")
+    g.add_edge("ground", "dates")
+    g.add_edge("dates", "match")
     g.add_edge("match", "assess")
     g.add_conditional_edges("assess", _after_assess, {"crosssell": "crosssell", "end": END})
     g.add_edge("crosssell", END)

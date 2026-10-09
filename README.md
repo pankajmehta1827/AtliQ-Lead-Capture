@@ -25,12 +25,13 @@ Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 
 | Screen | What you can do |
 |---|---|
-| **Dashboard** | KPI cards (deals to follow up, new leads in the last 7 days, drafts to review, % of deals with a next step), a follow-up queue with one row per deal and a **live timer**, pipeline by stage, and insights such as *"FinEdge Bank ($95k) is going cold"* |
-| **Review queue** | AI drafts waiting for the owner. Click any field to highlight the sentence it came from. Choose which CRM record to update or create a new lead, edit, then **Confirm** or **Discard** |
+| **Dashboard** | KPI cards (deals to follow up, new leads in the last 7 days, drafts to review, % of deals with a next step), a follow-up queue with one row per deal, a **live timer** and **Draft reply**, pipeline by stage, and insights such as *"FinEdge Bank ($95k) is going cold"* |
+| **Ask AI** | Ask your pipeline in plain English (*"What's blocking FinEdge?"*, *"Which proposals have had no reply for 30 days?"*). Answers come only from the CRM and saved conversations, with linked deals and quotes, and unverified quotes are flagged |
+| **Review queue** | AI drafts waiting for the owner. Click any field to highlight the sentence it came from. Choose which CRM record to update or create a new lead, edit, then **Confirm** or **Discard**. Drafts split out of an internal meeting are tagged *From internal meeting* |
 | **Leads** | Open pipeline, flagged first: inactive for more than 14 days, no next step, proposal unanswered |
 | **CRM** | Every lead (open, won and lost) with where it came from (*CRM export / AI capture / Manual / Import*), an **AI Lead app → CRM** sync panel, Add lead with a duplicate check, CSV/Excel import and export |
 | **AI Capture** | Paste an email, meeting note or LinkedIn chat; upload files; sync the sample mailbox and calendar; **Re-run with AI** for drafts made without a key |
-| **Follow-ups** | One card per deal with a live **Due in / Overdue by** timer (green, amber, or red and pulsing), most overdue first. Done / Snooze / Dismiss |
+| **Follow-ups** | One card per deal with a live **Due in / Overdue by** timer (green, amber, or red and pulsing), most overdue first. **Draft reply** / Done / Snooze / Dismiss. *Revisit date* reminders come from the date detector |
 | **Daily summary** | New drafts, due follow-ups and deals going cold, per owner or for the whole team |
 | **Settings & log** | Exclusion rules, a pause-processing switch, and the append-only log of every action |
 
@@ -40,19 +41,37 @@ Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 capture (paste / upload / sample mailbox + calendar sync)
    │  queued: nothing is lost if the LLM is down or rate-limited (retried; waits for Groq's retry-after)
    ▼
-LangGraph:  check_exclusions → mask → classify → extract → ground → match → assess → (cross_sell)
-               │ excluded            │ not sales: skip, wipe content, log
+LangGraph:  check_exclusions → mask → classify → extract → ground → dates → match → assess → (cross_sell)
+               │ excluded            │ └ internal note about several deals → multi_extract (one draft per deal)
+               │                     │ not sales: skip, wipe content, log
    ▼
 Draft in the owner's review queue (fields + verbatim evidence + confidence + duplicate candidates + follow-ups)
    ▼  owner confirms / edits / discards       ← the ONLY path that writes to the CRM
 CRM deal created or updated · reminders scheduled · cross-sell ideas stored · every action audit-logged
 ```
 
-**Where the AI is used:** three LLM calls, all with strict JSON-schema output on Groq:
+**Where the AI is used:** every call uses strict JSON-schema output on Groq, and every client-specific fact must
+quote its source.
 
-1. **Classify** the conversation as a new lead, an existing deal, an existing client, or not sales.
+In the capture pipeline (automatic, per conversation):
+
+1. **Classify** the conversation: new lead, existing deal, existing client, *internal note about several deals*,
+   or not sales.
 2. **Extract** the CRM fields, a 3-5 sentence summary, follow-ups with dates, and new client needs.
-3. **Cross-sell** ideas, for existing clients only, using that client's own history.
+3. **Date detector:** a focused pass for revisit dates and deferrals the extraction can miss ("check back around
+   Q2 2026", "decision deferred to the 14 July board"). They become *Revisit date* reminders.
+4. **Internal meeting notes:** a pipeline review that discusses several deals becomes **one update draft per
+   deal**, matched to the right CRM record. Unknown companies become new-lead drafts.
+5. **Cross-sell** ideas, for existing clients only, using that client's own history.
+
+On demand (read-only: never writes to the CRM or contacts anyone):
+
+6. **Draft reply:** a short follow-up email written from the deal's CRM record and latest conversations. You edit
+   it, then copy it or open it in your own email app. Facts the AI can't quote from the records are flagged.
+7. **Ask your pipeline:** answers questions across all deals, preferring the newest conversation over stale CRM
+   notes, with deal links and checked quotes.
+
+If Groq returns malformed JSON, the call is retried once. Rate limits and AI errors show as a clear message.
 
 **Done in plain code, not AI:**
 
@@ -65,7 +84,9 @@ CRM deal created or updated · reminders scheduled · cross-sell ideas stored ·
 
 | Source | Rule | Timer deadline |
 |---|---|---|
-| AI, from the conversation | Commitments, revisit dates, deadlines ("SOW by 15 July"), each with a quote | Its date |
+| AI, from the conversation | Commitments and deadlines ("SOW by 15 July"), each with a quote | Its date |
+| AI date detector | Revisit dates and deferrals ("check back around Q2 2026") become *Revisit date* reminders | Its date |
+| AI, internal meeting note | A dated action for one of the deals it discusses | Its date |
 | Rule | Client wrote last and AtliQ hasn't replied | Message date + 2 days |
 | CRM scan | Status *Proposal Sent* and no contact for 7+ days | Last contact + 7 days |
 | CRM scan | No contact for 14+ days | Last contact + 14 days |
@@ -154,7 +175,7 @@ italic editorial notes (`*(No reply sent…)*`) are the answer key, so they're s
 ## Tests and evals
 
 ```bash
-cd backend && .venv/Scripts/python -m pytest -q          # 15 tests: SQLite + rules mode, no network
+cd backend && .venv/Scripts/python -m pytest -q          # 23 tests: SQLite + rules mode, no network
 cd backend && .venv/Scripts/python -m evals.run_evals    # PRD evals on the 50 labelled items (add N to limit)
 ```
 

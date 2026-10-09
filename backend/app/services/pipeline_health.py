@@ -57,7 +57,7 @@ def reminder_deadline(r: Reminder) -> date:
     return r.due_date
 
 
-_KIND_BASE = {"proposal_unanswered": 62, "commitment": 58, "inactive": 48, "no_next_step": 40}
+_KIND_BASE = {"proposal_unanswered": 62, "revisit": 60, "commitment": 58, "inactive": 48, "no_next_step": 40}
 
 
 def reminder_priority(r: Reminder, today: date) -> int:

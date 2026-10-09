@@ -9,6 +9,7 @@ import Pipeline from "./pages/Pipeline";
 import CRM from "./pages/CRM";
 import DealDetail from "./pages/DealDetail";
 import Reminders from "./pages/Reminders";
+import Ask from "./pages/Ask";
 import Capture from "./pages/Capture";
 import Summary from "./pages/Summary";
 import Settings from "./pages/Settings";
@@ -60,10 +61,11 @@ export default function App() {
 
   const workspace = [
     { to: "/dashboard", label: "Dashboard", icon: "dashboard", count: counts.due, badge: true },
+    { to: "/ask", label: "Ask AI", icon: "sparkle", ai: true },
     { to: "/review", label: "Review queue", icon: "inbox", count: counts.drafts, badge: true },
     { to: "/leads", label: "Leads", icon: "leads", count: counts.leads },
     { to: "/crm", label: "CRM", icon: "database" },
-    { to: "/capture", label: "AI Capture", icon: "sparkle" },
+    { to: "/capture", label: "AI Capture", icon: "plus" },
     { to: "/follow-ups", label: "Follow-ups", icon: "pulse" },
   ];
   const admin = [
@@ -88,7 +90,8 @@ export default function App() {
             <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "active" : "")}>
               <Icon name={n.icon} size={17} />
               <span className="label">{n.label}</span>
-              {n.count ? <span className={`count ${n.badge ? "badge" : ""}`}>{n.count}</span> : null}
+              {"ai" in n && n.ai ? <span className="ai-tag">AI</span> : null}
+              {"count" in n && n.count ? <span className={`count ${"badge" in n && n.badge ? "badge" : ""}`}>{n.count}</span> : null}
             </NavLink>
           ))}
         </nav>
@@ -129,6 +132,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard user={user} today={config.today} onChange={refreshCounts} />} />
+          <Route path="/ask" element={<Ask />} />
           <Route path="/review" element={<ReviewQueue user={user} onChange={refreshCounts} />} />
           <Route path="/leads" element={<Pipeline user={user} />} />
           <Route path="/crm" element={<CRM user={user} />} />
@@ -154,6 +158,10 @@ function TopBar({ user, due }: { user: string; due: number }) {
     <header className="topbar">
       <DealSearch />
       <div className="topbar-right">
+        <button className="ask-ai" onClick={() => navigate("/ask")} title="Ask your pipeline">
+          <Icon name="sparkle" size={15} />
+          Ask AI
+        </button>
         <button className="icon" title={`${due} follow-up(s) due`} onClick={() => navigate("/follow-ups")}>
           <Icon name="bell" size={18} />
           {due > 0 && <span className="dot" />}

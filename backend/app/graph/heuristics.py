@@ -47,8 +47,11 @@ def resolve_date(text: str, ref: date) -> str | None:
     return None
 
 
-def classify(item: dict, has_match: bool, all_internal: bool) -> dict:
+def classify(item: dict, has_match: bool, all_internal: bool, mentioned_deals: int = 0) -> dict:
     body = item.get("body") or ""
+    if all_internal and mentioned_deals >= 2:
+        return {"category": "internal_multi_deal", "confidence": 0.65,
+                "reason": f"Internal note naming {mentioned_deals} CRM deals (rule-based)."}
     if PERSONAL_WORDS.search(body) and not SALES_WORDS.search(body):
         return {"category": "not_sales", "confidence": 0.6, "reason": "Looks personal / non-business (rule-based)."}
     hits = len(SALES_WORDS.findall(body))
@@ -117,3 +120,96 @@ def extract(item: dict, crm: dict | None, today: date, internal_domain: str = "a
         "followups": followups,
         "new_needs": [],
     }
+
+
+
+# ---------------------------------------------------------------- revisit / date signals (#2)
+
+MONTH_NAMES = r"(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*"
+_DATE_EXPR = re.compile(
+    rf"(?i)\b(?:(\d{{1,2}})(?:st|nd|rd|th)?\s+{MONTH_NAMES}|{MONTH_NAMES}\s+(\d{{1,2}})(?:st|nd|rd|th)?\b|"
+    rf"end of\s+{MONTH_NAMES}|q([1-4])\s*(20\d{{2}})?|next quarter)"
+)
+_REVISIT = re.compile(r"(?i)\b(check back|revisit|reconnect|circle back|come back to|touch base|after .{0,40}clos|re-?engage)")
+_DECISION = re.compile(r"(?i)\b(deferred|pushed|postponed|moved|board|decision|approval|sign[- ]?off)\b")
+_DEADLINE = re.compile(r"(?i)\b(by|due|deadline|before|no later than)\b")
+_MEETING = re.compile(r"(?i)\b(call|meeting|meet|demo|slot|catch up|sync)\b")
+
+
+def _resolve_expr(m: re.Match, ref: date) -> str | None:
+    import calendar
+
+    text = m.group(0).lower()
+    try:
+        if text.startswith("next quarter"):
+            q = (ref.month - 1) // 3 + 2
+            year = ref.year + (q > 4)
+            q = q - 4 if q > 4 else q
+            return date(year, 3 * (q - 1) + 1, 1).isoformat()
+        if text.startswith("q"):
+            year = int(m.group(7)) if m.group(7) else ref.year
+            d = date(year, 3 * (int(m.group(6)) - 1) + 1, 1)
+            if not m.group(7) and d < ref:
+                d = d.replace(year=d.year + 1)
+            return d.isoformat()
+        if text.startswith("end of"):
+            mon = MONTHS[m.group(5)[:3].lower()]
+            year = ref.year + (mon < ref.month)
+            return date(year, mon, calendar.monthrange(year, mon)[1]).isoformat()
+        if m.group(1):
+            day, mon = int(m.group(1)), MONTHS[m.group(2)[:3].lower()]
+        else:
+            day, mon = int(m.group(4)), MONTHS[m.group(3)[:3].lower()]
+        d = date(ref.year, mon, day)
+        if d < ref - timedelta(days=60):
+            d = d.replace(year=d.year + 1)
+        return d.isoformat()
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def date_signals(body: str, ref: date) -> list[dict]:
+    """Future-looking dates with the sentence they appear in, classified by the words around them."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    sentences = [x.strip(" -*[]") for x in re.split(r"(?<=[.!?])\s+|\n+", body)]
+    for i, sentence in enumerate(sentences):
+        if len(sentence) < 8:
+            continue
+        # "...likely Q2 2026. Please do check back with us around then." -> the cue sits in a nearby sentence
+        around = " ".join(sentences[max(0, i - 2): i + 3])
+        for m in _DATE_EXPR.finditer(sentence):
+            resolved = _resolve_expr(m, ref)
+            if not resolved or resolved < ref.isoformat() or resolved in seen:
+                continue
+            seen.add(resolved)
+            kind = (
+                "revisit" if _REVISIT.search(sentence) or _REVISIT.search(around)
+                else "decision" if _DECISION.search(sentence)
+                else "deadline" if _DEADLINE.search(sentence)
+                else "meeting" if _MEETING.search(sentence)
+                else "other"
+            )
+            out.append({"phrase": m.group(0), "resolved_date": resolved, "kind": kind,
+                        "what": sentence[:160], "evidence": sentence})
+    return out
+
+
+# ---------------------------------------------------------------- internal notes covering several deals (#1)
+
+def multi_deal(body: str, deals: list[dict], ref: date) -> list[dict]:
+    """deals: [{lead_code, company, key}] known to be named in the text. One mention per deal: the lines naming it."""
+    lines = [ln.strip(" -*") for ln in body.split("\n") if ln.strip(" -*")]
+    out = []
+    for d in deals:
+        hits = [ln for ln in lines if d["lead_code"] in ln or re.search(rf"(?i)\b{re.escape(d['key'])}", ln)]
+        if not hits:
+            continue
+        text = " ".join(hits)
+        sig = date_signals(text, ref)
+        out.append({
+            "company": d["company"], "lead_code": d["lead_code"], "update": hits[0][:240],
+            "next_step": hits[0][:200], "next_step_date": sig[0]["resolved_date"] if sig else None,
+            "owner": None, "evidence": hits[0],
+        })
+    return out

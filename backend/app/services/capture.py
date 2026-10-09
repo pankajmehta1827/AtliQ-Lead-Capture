@@ -166,6 +166,29 @@ def process_item(db: Session, item_id: int) -> str:
     si.body = state.get("masked_body", si.body)
     si.category = state.get("category")
     si.status = "processed"
+
+    if "multi_updates" in state:
+        # #1 internal note about several deals: one small update draft per deal it mentions
+        si.category = "internal_multi_deal"
+        ids = []
+        for u in state["multi_updates"]:
+            d = Draft(
+                source_item_id=si.id, kind=u["kind"], category=u["category"], deal_id=u["deal_id"],
+                fields=u["fields"], summary=u["summary"], confidence=u["confidence"], needs_review=u["needs_review"],
+                missing_fields=u["missing_fields"], duplicate_candidates=u["matches"], followups=u["followups"],
+                crosssell=[], owner=u["owner"], llm_mode=state.get("llm_mode", "llm"),
+            )
+            db.add(d)
+            db.flush()
+            ids.append(d.id)
+        log_action(
+            db, actor="assistant", action="multi_deal_note", outcome=f"{len(ids)} draft(s)", entity_type="source_item",
+            entity_id=si.id, source_ref=si.external_ref or si.subject,
+            details={"draft_ids": ids, "trace": state.get("trace", [])},
+        )
+        db.commit()
+        return "processed"
+
     ex = state["extraction"]
     draft = Draft(
         source_item_id=si.id,

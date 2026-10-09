@@ -177,14 +177,15 @@ def confirm_draft(
         due = _parse_date(f.get("due_date"))
         if not due:
             continue
+        kind = "revisit" if f.get("kind") == "revisit" else "commitment"
         exists = db.scalar(
             select(Reminder).where(Reminder.deal_id == deal.id, Reminder.due_date == due, Reminder.status == "open",
-                                   Reminder.kind == "commitment")
+                                   Reminder.kind.in_(["commitment", "revisit"]))
         )
         if exists:
             continue
         db.add(Reminder(
-            deal_id=deal.id, kind="commitment", reason=f["reason"], due_date=due,
+            deal_id=deal.id, kind=kind, reason=f["reason"], due_date=due,
             suggested_next_step=f.get("suggested_next_step"), evidence=f.get("evidence"),
             source_item_id=draft.source_item_id, owner=deal.owner or draft.owner,
         ))
