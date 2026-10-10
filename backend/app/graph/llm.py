@@ -1,5 +1,5 @@
-"""LangChain chains for the capture pipeline (Groq, or Claude with LLM_PROVIDER=anthropic) and for email drafts
-and Ask AI (always Groq)."""
+"""LangChain chains. Capture pipeline: Groq, or Claude with LLM_PROVIDER=anthropic. Email drafts: Groq, or Claude
+with EMAIL_PROVIDER=anthropic. Ask AI: always Groq."""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -147,7 +147,7 @@ class ClaudeRefusal(RuntimeError):
     pass
 
 
-def _claude_structured(prompt: ChatPromptTemplate, schema):
+def _claude_structured(prompt: ChatPromptTemplate, schema, model: str, effort: str):
     """Same contract as `prompt | _structured(schema)`: invoke(dict) -> a validated `schema` instance.
 
     Uses the Messages API structured outputs (`messages.parse` + `output_format`), so the reply always matches the
@@ -155,18 +155,17 @@ def _claude_structured(prompt: ChatPromptTemplate, schema):
     from langchain_core.runnables import RunnableLambda
 
     def call(inputs: dict):
-        s = get_settings()
         msgs = prompt.format_messages(**inputs)
         system = "\n\n".join(str(m.content) for m in msgs if m.type == "system")
         turns = [{"role": "assistant" if m.type == "ai" else "user", "content": str(m.content)}
                  for m in msgs if m.type != "system"]
         response = _claude().messages.parse(
-            model=s.capture_claude_model,
+            model=model,
             max_tokens=16000,
             system=system,
             messages=turns,
             output_format=schema,
-            output_config={"effort": s.capture_claude_effort},
+            output_config={"effort": effort},
         )
         if response.stop_reason == "refusal":
             raise ClaudeRefusal("Claude declined to process this conversation")
@@ -179,9 +178,10 @@ def _claude_structured(prompt: ChatPromptTemplate, schema):
 
 def _capture_chain(system: str, human: str, schema):
     """Chains that read captured conversations: Claude when LLM_PROVIDER=anthropic, else Groq."""
+    s = get_settings()
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    if get_settings().capture_provider == "anthropic":
-        return _claude_structured(prompt, schema)
+    if s.capture_provider == "anthropic":
+        return _claude_structured(prompt, schema, s.capture_claude_model, s.capture_claude_effort)
     return prompt | _structured(schema)
 
 
@@ -194,7 +194,11 @@ def multi_chain():
 
 
 def email_chain():
+    """Follow-up email drafts: Claude when EMAIL_PROVIDER=anthropic, else Groq."""
+    s = get_settings()
     prompt = ChatPromptTemplate.from_messages([("system", EMAIL_SYSTEM), ("human", "Write the follow-up email.")])
+    if s.email_provider_name == "anthropic":
+        return _claude_structured(prompt, EmailDraft, s.email_claude_model, s.email_claude_effort)
     return prompt | _structured(EmailDraft)
 
 

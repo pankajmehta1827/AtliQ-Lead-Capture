@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     capture_claude_model: str = "claude-haiku-5-5"
     capture_claude_effort: str = "low"  # low | medium | high: thinking depth, and so cost
+    # Who writes follow-up email drafts: "groq" (default) or "anthropic". Ask AI always runs on Groq.
+    email_provider: str = "groq"
+    email_claude_model: str = "claude-haiku-5-5"
+    email_claude_effort: str = "low"
     llm_temperature: float = 0.0
 
     # Domain settings
@@ -65,12 +69,20 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
-        """Groq: email drafts and Ask AI always use it."""
+        """Groq: Ask AI always uses it (email drafts and capture can switch to Claude)."""
         return bool(self.groq_api_key)
 
     @property
     def capture_provider(self) -> str:
         return "anthropic" if self.llm_provider.strip().lower() == "anthropic" else "groq"
+
+    @property
+    def email_provider_name(self) -> str:
+        return "anthropic" if self.email_provider.strip().lower() == "anthropic" else "groq"
+
+    @property
+    def email_llm_enabled(self) -> bool:
+        return bool(self.anthropic_api_key) if self.email_provider_name == "anthropic" else bool(self.groq_api_key)
 
     @property
     def capture_llm_enabled(self) -> bool:

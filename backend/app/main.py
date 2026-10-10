@@ -36,7 +36,11 @@ async def lifespan(app: FastAPI):
     capture = f"Claude {s.capture_claude_model}" if s.capture_provider == "anthropic" else f"Groq {s.groq_model}"
     if not s.capture_llm_enabled:
         capture = "rules (no API key)"
-    log.info("Capture AI: %s · drafts and Ask AI: %s", capture, f"Groq {s.groq_model}" if s.llm_enabled else "off")
+    email = f"Claude {s.email_claude_model}" if s.email_provider_name == "anthropic" else f"Groq {s.groq_model}"
+    if not s.email_llm_enabled:
+        email = "template (no API key)"
+    log.info("Capture AI: %s · email drafts: %s · Ask AI: %s", capture, email,
+             f"Groq {s.groq_model}" if s.llm_enabled else "off")
     stop = asyncio.Event()
     tasks = [asyncio.create_task(worker_loop(stop)), asyncio.create_task(scheduler_loop(stop))]
     yield

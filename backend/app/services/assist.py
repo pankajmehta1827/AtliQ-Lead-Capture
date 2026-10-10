@@ -82,7 +82,7 @@ def draft_email(db: Session, deal: Deal, user: str, instructions: str = "", remi
     to_email = deal.contact.email if deal.contact else None
     sender = deal.owner or user
 
-    if s.llm_enabled:
+    if s.email_llm_enabled:
         from ..graph.llm import email_chain
 
         out = email_chain().invoke({
