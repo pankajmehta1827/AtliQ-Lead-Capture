@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AskAnswer, api } from "../api";
+import Feedback from "../components/Feedback";
 import { Icon } from "../components/ui";
 
 type Msg = { role: "user" | "assistant"; content: string; result?: AskAnswer };
@@ -131,6 +132,9 @@ export default function Ask() {
                     ))}
                   </ul>
                 </details>
+              )}
+              {m.result?.mode === "llm" && (
+                <Feedback feature="pipeline_answer" refText={msgs[i - 1]?.content} />
               )}
             </div>
           ),
