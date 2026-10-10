@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from ..audit import log_action
 from ..db import get_db
 from ..deps import current_user
 from ..models import Deal
@@ -49,6 +50,23 @@ class Turn(BaseModel):
 class AskRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
     history: list[Turn] = []
+
+
+class Feedback(BaseModel):
+    feature: Literal["email_draft", "pipeline_answer"]
+    rating: Literal["up", "down"]
+    deal_id: int | None = None
+    comment: str = Field(default="", max_length=500)
+    ref: str = Field(default="", max_length=300)
+
+
+@router.post("/feedback")
+def feedback(body: Feedback, user: str = Depends(current_user), db: Session = Depends(get_db)):
+    """HAX G15: a thumbs up or down on an AI email draft or answer, kept in the action log to improve prompts."""
+    log_action(db, actor=user, action="ai_feedback", outcome=body.rating, entity_type=body.feature,
+               entity_id=body.deal_id, details={"comment": body.comment or None, "ref": body.ref or None})
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/ask")

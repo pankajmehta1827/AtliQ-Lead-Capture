@@ -548,3 +548,19 @@ details.sources li { display: flex; flex-direction: column; gap: 2px; }
 }
 label.pl-owner, .pl-assign-row label.row { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; }
 .pl-avatar.empty { padding: 0; }
+
+/* ---------- HAX: first-run intro (G1/G2), feedback (G15), confirm preview (G16) ---------- */
+.intro { background: #fff; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.intro-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.intro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.intro-grid h3 { margin-bottom: 6px; }
+.intro-grid ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.feedback { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.feedback button { padding: 4px 12px; }
+.feedback button.on { background: var(--color-good-100); border-color: var(--color-good-700); color: var(--color-good-700); }
+.feedback-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+.feedback-form input { flex: 1; min-width: 180px; width: auto; }
+.preview { border: 1px solid var(--color-accent-300); background: var(--color-accent-100); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.preview h3 { margin: 0; }
+.preview table { background: #fff; }
+.preview ul { margin: 0; }

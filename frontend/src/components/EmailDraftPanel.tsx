@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { EmailDraft, api } from "../api";
+import Feedback from "./Feedback";
 import { Icon } from "./ui";
 
 /** #4 Follow-up email draft. The seller edits it and sends it from their own mailbox: the app never sends. */
@@ -129,6 +130,7 @@ export default function EmailDraftPanel({
                 {busy ? "Writing…" : "Regenerate"}
               </button>
             </div>
+            <Feedback key={draft.subject + draft.body.length} feature="email_draft" dealId={dealId} refText={subject} />
           </div>
         )}
 

@@ -51,6 +51,12 @@ def get_draft(draft_id: int, db: Session = Depends(get_db), _: str = Depends(cur
     return ser.draft(_get(db, draft_id), with_source=True)
 
 
+@router.post("/{draft_id}/preview")
+def preview(draft_id: int, body: ConfirmBody, user: str = Depends(current_user), db: Session = Depends(get_db)):
+    """What Confirm would change in the CRM, computed by a rolled-back dry run. Nothing is saved or logged."""
+    return confirm_draft(db, _get(db, draft_id), user, body.edits, body.target_deal_id, body.create_new, dry_run=True)
+
+
 @router.post("/{draft_id}/confirm")
 def confirm(draft_id: int, body: ConfirmBody, user: str = Depends(current_user), db: Session = Depends(get_db)):
     deal = confirm_draft(db, _get(db, draft_id), user, body.edits, body.target_deal_id, body.create_new)

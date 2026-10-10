@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Draft, FIELD_LABELS, SERVICES, SOURCES, STAGES, api } from "../api";
+import { ConfirmPreview, Draft, FIELD_LABELS, SERVICES, SOURCES, STAGES, api } from "../api";
 import SourceView from "../components/SourceView";
 
 const FIELD_ORDER = Object.keys(FIELD_LABELS);
@@ -101,6 +101,7 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const [reason, setReason] = useState("");
+  const [preview, setPreview] = useState<ConfirmPreview | null>(null);
 
   useEffect(() => {
     api<Draft>(`/api/drafts/${id}`).then((d) => {
@@ -111,6 +112,8 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
       setTarget(d.deal_id ? String(d.deal_id) : "new");
     });
   }, [id]);
+
+  useEffect(() => setPreview(null), [values, target]);
 
   const highlight = useMemo(() => {
     if (!draft || !focus) return null;
@@ -126,18 +129,26 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
     if ((values[k] ?? "") !== (draft.fields[k]?.value ?? "")) edits[k] = values[k];
   });
 
+  const body = { edits, create_new: target === "new", target_deal_id: target !== "new" ? Number(target) : null };
+
+  // HAX G16: show exactly what Confirm will change before anything is written.
+  async function review() {
+    setBusy(true);
+    setError(null);
+    try {
+      setPreview(await api<ConfirmPreview>(`/api/drafts/${id}/preview`, { method: "POST", json: body }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirm() {
     setBusy(true);
     setError(null);
     try {
-      await api(`/api/drafts/${id}/confirm`, {
-        method: "POST",
-        json: {
-          edits,
-          create_new: target === "new",
-          target_deal_id: target !== "new" ? Number(target) : null,
-        },
-      });
+      await api(`/api/drafts/${id}/confirm`, { method: "POST", json: body });
       onDone();
     } catch (e) {
       setError((e as Error).message);
@@ -278,11 +289,63 @@ function DraftEditor({ id, onDone }: { id: number; onDone: () => void }) {
 
         {error && <div className="error">{error}</div>}
 
+        {preview && (
+          <section className="preview" aria-label="What will change in the CRM">
+            <h3>
+              {preview.action === "create"
+                ? `Confirm creates a new lead ${preview.lead_code} · ${preview.company ?? ""}`
+                : `Confirm updates ${preview.lead_code} · ${preview.company ?? ""}`}
+            </h3>
+            {preview.changes.length ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    {preview.action === "update" && <th>Now</th>}
+                    <th>{preview.action === "update" ? "After confirm" : "Value"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.changes.map((c) => (
+                    <tr key={c.field}>
+                      <td>{c.label}</td>
+                      {preview.action === "update" && <td className="muted">{c.from ?? "empty"}</td>}
+                      <td>
+                        <strong>{c.to}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="muted small">No CRM fields change.</p>
+            )}
+            <ul className="plain small">
+              {preview.note_added && <li>Adds the conversation summary to the deal's notes</li>}
+              {preview.reminders.map((r) => (
+                <li key={r.due_date + r.reason}>
+                  Creates a reminder for <strong>{r.due_date}</strong>: {r.reason}
+                </li>
+              ))}
+              {preview.crosssell > 0 && <li>Saves {preview.crosssell} cross-sell idea(s) to the deal</li>}
+            </ul>
+          </section>
+        )}
+
         <div className="actions">
-          {!discarding ? (
+          {preview ? (
             <>
               <button className="primary" disabled={busy} onClick={confirm}>
-                {Object.keys(edits).length ? `Confirm with ${Object.keys(edits).length} edit(s)` : "Confirm"}
+                Save to CRM
+              </button>
+              <button disabled={busy} onClick={() => setPreview(null)}>
+                Back to edit
+              </button>
+            </>
+          ) : !discarding ? (
+            <>
+              <button className="primary" disabled={busy} onClick={review}>
+                {Object.keys(edits).length ? `Review ${Object.keys(edits).length} edit(s) and confirm` : "Review and confirm"}
               </button>
               <button disabled={busy} onClick={() => setDiscarding(true)}>
                 Discard

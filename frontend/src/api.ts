@@ -162,6 +162,17 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return res.json() as Promise<T>;
 }
 
+/** What Confirm would change in the CRM (dry run, nothing saved). */
+export type ConfirmPreview = {
+  action: "create" | "update";
+  lead_code: string;
+  company: string | null;
+  changes: { field: string; label: string; from: string | null; to: string }[];
+  note_added: boolean;
+  reminders: { due_date: string; reason: string; kind: string }[];
+  crosssell: number;
+};
+
 export const FIELD_LABELS: Record<string, string> = {
   company: "Company",
   contact_name: "Contact",

@@ -82,7 +82,9 @@ def confirm_draft(
     edits: dict[str, Any] | None = None,
     target_deal_id: int | None = None,
     create_new: bool = False,
-) -> Deal:
+    dry_run: bool = False,
+) -> Deal | dict[str, Any]:
+    """Apply a draft to the CRM. With dry_run, return what would change and roll everything back (HAX G16)."""
     if draft.status != "pending":
         raise HTTPException(409, f"Draft already {draft.status}")
     edits = {k: v for k, v in (edits or {}).items() if k in EDITABLE_FIELDS}
@@ -167,6 +169,7 @@ def confirm_draft(
 
     # Reminders from detected follow-up signals (FR-6). Reminders go to AtliQ users only.
     created_reminders = 0
+    new_reminders: list[dict[str, Any]] = []
     followups = list(draft.followups or [])
     if "next_step_date" in edited and values.get("next_step_date"):
         followups.append({
@@ -190,6 +193,12 @@ def confirm_draft(
             source_item_id=draft.source_item_id, owner=deal.owner or draft.owner,
         ))
         created_reminders += 1
+        new_reminders.append({"due_date": due.isoformat(), "reason": f["reason"], "kind": kind})
+
+    if dry_run:
+        preview = _preview(db, deal, action, changes, values, new_reminders, draft)
+        db.rollback()
+        return preview
 
     for idea in draft.crosssell or []:
         db.add(CrossSellSuggestion(
@@ -210,6 +219,44 @@ def confirm_draft(
     db.commit()
     db.refresh(deal)
     return deal
+
+
+_PREVIEW_LABELS = {
+    "service_interest": "Service", "requirement": "Requirement", "status": "Stage", "est_value_usd": "Value",
+    "next_step": "Next step", "next_followup_date": "Next step date", "owner": "Owner", "contact_id": "Contact",
+    "last_contact_date": "Last contact", "source": "Source", "company": "Company",
+}
+
+
+def _preview(db: Session, deal: Deal, action: str, changes: dict[str, Any], values: dict[str, Any],
+             reminders: list[dict[str, Any]], draft: Draft) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    if action == "deal_created":
+        for attr, label, new in [
+            ("company", "Company", deal.company.name if deal.company else values.get("company")),
+            ("contact_id", "Contact", values.get("contact_name") or values.get("contact_email")),
+            ("source", "Source", deal.source), ("service_interest", "Service", deal.service_interest),
+            ("requirement", "Requirement", deal.requirement), ("status", "Stage", deal.status),
+            ("est_value_usd", "Value", deal.est_value_usd), ("owner", "Owner", deal.owner),
+            ("next_step", "Next step", deal.next_step), ("next_followup_date", "Next step date", deal.next_followup_date),
+        ]:
+            if new not in (None, ""):
+                rows.append({"field": attr, "label": label, "from": None, "to": str(new)})
+    else:
+        for attr, ch in changes.items():
+            to = ch["to"]
+            if attr == "contact_id":
+                to = values.get("contact_name") or values.get("contact_email") or to
+            rows.append({"field": attr, "label": _PREVIEW_LABELS.get(attr, attr), "from": ch["from"], "to": to})
+    return {
+        "action": "create" if action == "deal_created" else "update",
+        "lead_code": deal.lead_code,
+        "company": deal.company.name if deal.company else values.get("company"),
+        "changes": rows,
+        "note_added": bool(draft.summary or values.get("timeline")),
+        "reminders": reminders,
+        "crosssell": len(draft.crosssell or []),
+    }
 
 
 def discard_draft(db: Session, draft: Draft, user: str, reason: str | None) -> None:

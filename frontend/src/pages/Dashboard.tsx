@@ -4,6 +4,7 @@ import { Deal, Reminder, api, money } from "../api";
 import { Icon } from "../components/ui";
 import DealTimer, { useNow } from "../components/DealTimer";
 import EmailDraftPanel from "../components/EmailDraftPanel";
+import AssistantIntro from "../components/AssistantIntro";
 
 type DraftLite = { id: number; needs_review: boolean; created_at: string };
 type Idea = { id: number };
@@ -139,6 +140,8 @@ export default function Dashboard({ user, today, onChange }: { user: string; tod
           </span>
         </div>
       </div>
+
+      <AssistantIntro user={user} />
 
       <div className="kpi-cards">
         <div className="kpi-card blueprint">
