@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     # LLM (Groq via LangChain). If no key is set the pipeline runs in a rule-based offline mode.
     groq_api_key: str | None = None
     groq_model: str = "openai/gpt-oss-120b"
+    # Which provider reads captured conversations: "groq" (default) or "anthropic".
+    # Email drafts and Ask AI always run on Groq.
+    llm_provider: str = "groq"
+    anthropic_api_key: str | None = None
+    capture_claude_model: str = "claude-haiku-5-5"
+    capture_claude_effort: str = "low"  # low | medium | high: thinking depth, and so cost
     llm_temperature: float = 0.0
 
     # Domain settings
@@ -59,7 +65,17 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
+        """Groq: email drafts and Ask AI always use it."""
         return bool(self.groq_api_key)
+
+    @property
+    def capture_provider(self) -> str:
+        return "anthropic" if self.llm_provider.strip().lower() == "anthropic" else "groq"
+
+    @property
+    def capture_llm_enabled(self) -> bool:
+        """The provider that reads captured conversations (classify, extract, dates, splits, cross-sell)."""
+        return bool(self.anthropic_api_key) if self.capture_provider == "anthropic" else bool(self.groq_api_key)
 
     def today(self) -> date:
         return self.reference_date or date.today()

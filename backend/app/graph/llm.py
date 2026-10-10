@@ -1,4 +1,5 @@
-"""LangChain chains (Groq) for classification, extraction and cross-sell suggestions."""
+"""LangChain chains for the capture pipeline (Groq, or Claude with LLM_PROVIDER=anthropic) and for email drafts
+and Ask AI (always Groq)."""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -133,14 +134,63 @@ CONTEXT
 {context}"""
 
 
+@lru_cache
+def _claude():
+    import anthropic
+
+    s = get_settings()
+    # explicit base_url: never inherit an ANTHROPIC_BASE_URL meant for another tool on the same machine
+    return anthropic.Anthropic(api_key=s.anthropic_api_key, base_url="https://api.anthropic.com", max_retries=2, timeout=120)
+
+
+class ClaudeRefusal(RuntimeError):
+    pass
+
+
+def _claude_structured(prompt: ChatPromptTemplate, schema):
+    """Same contract as `prompt | _structured(schema)`: invoke(dict) -> a validated `schema` instance.
+
+    Uses the Messages API structured outputs (`messages.parse` + `output_format`), so the reply always matches the
+    schema. No temperature: current Claude models reject non-default sampling values."""
+    from langchain_core.runnables import RunnableLambda
+
+    def call(inputs: dict):
+        s = get_settings()
+        msgs = prompt.format_messages(**inputs)
+        system = "\n\n".join(str(m.content) for m in msgs if m.type == "system")
+        turns = [{"role": "assistant" if m.type == "ai" else "user", "content": str(m.content)}
+                 for m in msgs if m.type != "system"]
+        response = _claude().messages.parse(
+            model=s.capture_claude_model,
+            max_tokens=16000,
+            system=system,
+            messages=turns,
+            output_format=schema,
+            output_config={"effort": s.capture_claude_effort},
+        )
+        if response.stop_reason == "refusal":
+            raise ClaudeRefusal("Claude declined to process this conversation")
+        if response.parsed_output is None:
+            raise ValueError(f"Claude returned no structured output (stop_reason={response.stop_reason})")
+        return response.parsed_output
+
+    return RunnableLambda(call)
+
+
+def _capture_chain(system: str, human: str, schema):
+    """Chains that read captured conversations: Claude when LLM_PROVIDER=anthropic, else Groq."""
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    if get_settings().capture_provider == "anthropic":
+        return _claude_structured(prompt, schema)
+    return prompt | _structured(schema)
+
+
 def dates_chain():
-    prompt = ChatPromptTemplate.from_messages([("system", DATES_SYSTEM), ("human", "{conversation}")])
-    return prompt | _structured(DateSignals)
+    return _capture_chain(DATES_SYSTEM, "{conversation}", DateSignals)
 
 
 def multi_chain():
-    prompt = ChatPromptTemplate.from_messages([("system", MULTI_SYSTEM), ("human", "{conversation}")])
-    return prompt | _structured(MultiDeal)
+    return _capture_chain(MULTI_SYSTEM, "{conversation}", MultiDeal)
 
 
 def email_chain():
@@ -156,20 +206,15 @@ def ask_chain():
 
 
 def classify_chain():
-    prompt = ChatPromptTemplate.from_messages([("system", CLASSIFY_SYSTEM), ("human", "{conversation}")])
-    return prompt | _structured(Classification)
+    return _capture_chain(CLASSIFY_SYSTEM, "{conversation}", Classification)
 
 
 def extract_chain():
-    prompt = ChatPromptTemplate.from_messages([("system", EXTRACT_SYSTEM), ("human", "{conversation}")])
-    return prompt | _structured(Extraction)
+    return _capture_chain(EXTRACT_SYSTEM, "{conversation}", Extraction)
 
 
 def crosssell_chain():
-    prompt = ChatPromptTemplate.from_messages(
-        [("system", CROSSSELL_SYSTEM), ("human", "Latest conversation:\n{conversation}")]
-    )
-    return prompt | _structured(CrossSell)
+    return _capture_chain(CROSSSELL_SYSTEM, "Latest conversation:\n{conversation}", CrossSell)
 
 
 def prompt_constants() -> dict[str, str]:

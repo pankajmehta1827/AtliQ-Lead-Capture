@@ -103,6 +103,16 @@ def _retry_after_seconds(message: str) -> float:
     return min(3600.0, max(RATE_LIMIT_BACKOFF_SECONDS, h * 3600 + mi * 60 + sec + 1))
 
 
+def _retry_after_header(exc: Exception) -> float | None:
+    """Claude sends the wait in a retry-after header (seconds) rather than in the message text."""
+    response = getattr(exc, "response", None)
+    value = getattr(response, "headers", {}).get("retry-after") if response is not None else None
+    try:
+        return min(3600.0, max(RATE_LIMIT_BACKOFF_SECONDS, float(value) + 1)) if value else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _is_rate_limit(exc: Exception) -> bool:
     return type(exc).__name__ == "RateLimitError" or "rate limit" in str(exc).lower()
 
@@ -129,7 +139,7 @@ def process_item(db: Session, item_id: int) -> str:
             si.attempts -= 1
             si.status = "queued"
             global _backoff_until
-            delay = _retry_after_seconds(str(exc))
+            delay = _retry_after_header(exc) or _retry_after_seconds(str(exc))
             _backoff_until = time.monotonic() + delay
             db.commit()
             log.info("rate limited on item %s; backing off %.0fs", item_id, delay)

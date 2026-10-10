@@ -105,14 +105,14 @@ def rerun_status(db: Session = Depends(get_db), _: str = Depends(current_user)):
         select(func.count()).select_from(Draft).where(Draft.status == "pending", Draft.llm_mode == "rules")
     ) or 0
     queued = db.scalar(select(func.count()).select_from(SourceItem).where(SourceItem.status.in_(["queued", "processing"]))) or 0
-    return {"rules_drafts": rules_pending, "queued": queued, "llm_enabled": get_settings().llm_enabled}
+    return {"rules_drafts": rules_pending, "queued": queued, "llm_enabled": get_settings().capture_llm_enabled}
 
 
 @router.post("/rerun")
 def rerun_with_ai(limit: int = 20, user: str = Depends(current_user), db: Session = Depends(get_db)):
     """Re-process conversations whose pending draft was made in rules mode (no LLM key at the time).
     The old draft is kept as 'superseded' for the audit trail; nothing in the CRM changes."""
-    if not get_settings().llm_enabled:
+    if not get_settings().capture_llm_enabled:
         raise HTTPException(409, "No GROQ_API_KEY configured: re-running would use rules mode again")
     drafts = db.scalars(
         select(Draft).where(Draft.status == "pending", Draft.llm_mode == "rules")
