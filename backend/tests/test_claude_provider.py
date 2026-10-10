@@ -87,3 +87,18 @@ def test_claude_rate_limit_uses_retry_after_header():
     exc = SimpleNamespace(response=SimpleNamespace(headers={"retry-after": "120"}))
     assert _retry_after_header(exc) == 121
     assert _retry_after_header(Exception("no response")) is None
+
+
+def test_email_provider_anthropic_sends_drafts_to_claude_but_ask_stays_on_groq(claude, monkeypatch):
+    from app.config import get_settings
+    from app.graph import llm
+
+    monkeypatch.setattr(get_settings(), "email_provider", "anthropic")
+    draft = S.EmailDraft(subject="Following up", body="Hi Priya, ...", facts=[])
+    calls = claude(draft)
+    out = llm.email_chain().invoke({"sender": "Dhaval", "recipient": "Priya", "instructions": "none",
+                                    "context": "Deal L-1001 Acme Retail Group"})
+    assert out == draft
+    assert calls.calls[0]["model"] == "claude-haiku-5-5" and calls.calls[0]["output_format"] is S.EmailDraft
+    assert type(llm.ask_chain()).__name__ == "RunnableSequence"  # Ask AI: Groq
+    assert get_settings().email_llm_enabled

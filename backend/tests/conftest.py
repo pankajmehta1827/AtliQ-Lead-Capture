@@ -8,6 +8,10 @@ import pytest
 TEST_DB = Path(__file__).parent / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB}"
 os.environ["GROQ_API_KEY"] = ""
+# Never call a paid provider from tests, whatever backend/.env says; AI paths use stand-ins.
+os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["LLM_PROVIDER"] = "groq"
+os.environ["EMAIL_PROVIDER"] = "groq"
 os.environ["REFERENCE_DATE"] = "2026-07-10"
 os.environ["APP_ACCESS_CODE"] = ""
 os.environ["SEED_ON_STARTUP"] = "true"

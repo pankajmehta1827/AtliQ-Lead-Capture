@@ -138,10 +138,12 @@ login asks for it.
 | `DATABASE_URL` | local PostgreSQL | Railway's `postgres://` URL is converted automatically |
 | `GROQ_API_KEY` | none | Enables AI mode |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Any Groq chat model; gpt-oss models use strict JSON-schema output |
-| `LLM_PROVIDER` | `groq` | Who reads captured conversations: `groq` or `anthropic` (Claude). Email drafts and Ask AI always use Groq |
+| `LLM_PROVIDER` | `groq` | Who reads captured conversations: `groq` or `anthropic` (Claude) |
 | `ANTHROPIC_API_KEY` | none | Needed when `LLM_PROVIDER=anthropic`; use a key created for this project |
 | `CAPTURE_CLAUDE_MODEL` | `claude-haiku-5-5` | Claude model for capture (structured outputs via the Anthropic SDK) |
 | `CAPTURE_CLAUDE_EFFORT` | `low` | Claude thinking effort for capture: `low`, `medium` or `high` (higher costs more) |
+| `EMAIL_PROVIDER` | `groq` | Who writes follow-up email drafts: `groq` or `anthropic`. Ask AI always uses Groq |
+| `EMAIL_CLAUDE_MODEL` / `EMAIL_CLAUDE_EFFORT` | `claude-haiku-5-5` / `low` | Claude model and effort for email drafts |
 | `REFERENCE_DATE` | today | Set `2026-07-10` so the sample dataset behaves realistically |
 | `APP_ACCESS_CODE` | empty | Shared access code for hosted demos |
 | `SELLERS` | `Bhavin,Dhaval,Karandeep,Jay` | Users who own deals |

@@ -23,6 +23,8 @@ def _ai_call(fn, *args):
         raise
     except Exception as exc:  # noqa: BLE001
         text = str(exc)
+        if type(exc).__name__ == "ClaudeRefusal":
+            raise HTTPException(422, "The AI declined to write this one. Please draft it manually.") from exc
         if type(exc).__name__ == "RateLimitError" or "rate limit" in text.lower():
             raise HTTPException(429, "The AI provider's rate limit was reached. Try again in a few minutes.") from exc
         raise HTTPException(503, f"The AI couldn't answer this time ({type(exc).__name__}). Please try again.") from exc
