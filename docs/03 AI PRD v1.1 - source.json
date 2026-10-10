@@ -1,0 +1,855 @@
+{
+  "meta": {
+    "product_name": "AtliQ Lead Capture and Follow-up Assistant",
+    "subtitle": "An AI PRD for AtliQ Technologies' founder-led sales team",
+    "author": "Pankaj Mehta, AI Product Manager",
+    "date": "9 Oct 2026",
+    "version": "V1.1, Draft",
+    "status": "Draft for review: updated from the working prototype"
+  },
+  "pain_point": "AtliQ has a healthy flow of leads, but the founders, CEO and salesperson do not have time to keep the CRM up to date. Leads and client commitments stay in email, calendars, LinkedIn and personal memory, so **follow-ups are delayed, cross-sell opportunities are missed and revenue is lost**.",
+  "executive_summary": {
+    "what": "An AI assistant that connects AtliQ's CRM to email, calendar and LinkedIn. It drafts new lead records and deal updates from sales conversations, splits internal pipeline notes into per-deal updates, detects follow-up signals and revisit dates, reminds the deal owner with a live countdown, drafts follow-up emails the owner sends from their own mailbox, and answers questions about the pipeline. The deal owner confirms every record before it is saved. **A working prototype was built and tested on AtliQ's sample data in Oct 2026.**",
+    "why": "Revenue is lost despite a strong lead flow because the CRM depends on manual entry by people who are busy with operations and travel. Removing that manual step is the most direct way to protect revenue.",
+    "who": "Primary: AtliQ founders and CEO who sell alongside running the company. Secondary: the dedicated salesperson and the leadership team reviewing the pipeline.",
+    "how_measured": "**95% of new leads recorded in the CRM within 24 hours**, with source, requirement and next step, gated by **field extraction accuracy of at least 90%**.",
+    "target_launch": "Q1 2027, starting with email and calendar (assumption, pending engineering estimate). The prototype already covers the review, follow-up and pipeline workflow; live mailbox and calendar connectors are the main remaining build."
+  },
+  "problem": {
+    "statement": "AtliQ's sales team sells between meetings, operations and travel. Every lead, conversation and client commitment has to be typed into the CRM by hand, as a separate task, after the conversation has happened.",
+    "current_state_intro": "When a lead arrives through a referral, LinkedIn, a conference or an existing client, the team today works as follows:",
+    "current_state_steps": [
+      "The conversation happens by email, in a meeting, on a call, on LinkedIn or at an event.",
+      "Details stay in the inbox, messaging apps, notes or personal memory.",
+      "The CRM is updated later, in occasional batches, often days after the conversation and with minimal detail.",
+      "Follow-up dates and commitments, such as 'check back in Q4', are rarely recorded.",
+      "Follow-ups happen from memory, or only when the client gets in touch again."
+    ],
+    "pain_points": [
+      "Leads received during travel, meetings or events are often never entered into the CRM.",
+      "Records are entered days later with little detail, so conversation context is lost.",
+      "Client signals stay in emails and notes, so follow-ups and revisits are missed.",
+      "Cross-sell and upsell opportunities with existing clients go unnoticed.",
+      "Growth depends on what the founders remember, which does not scale."
+    ],
+    "business_impact": "Qualified leads and existing-client opportunities are lost without anyone noticing. Open deals go quiet, proposals are not chased, and the founders cannot see a reliable pipeline to plan revenue.",
+    "why_now": "AtliQ is growing and its leaders are spending more time on delivery and operations, so the gap between lead flow and CRM records will widen. Email, calendar and CRM integrations combined with AI extraction now make automatic capture practical at low cost.",
+    "jtbd": {
+      "when": "finish a sales conversation by email, in a meeting or on LinkedIn,",
+      "help_me": "get the lead, the client's needs and the agreed next step into the CRM without typing it myself, and remind me when to follow up,",
+      "so_that": "no opportunity is lost and I can stay focused on clients and operations.",
+      "trigger": "A new or ongoing sales conversation takes place in a connected channel: an email, a calendar meeting or a LinkedIn message.",
+      "outcome": "A complete CRM record (source, contact, requirement, stage, next step) is ready for confirmation within minutes. Effort per lead: **under 1 minute** to review and confirm.",
+      "why_ai": "The information already exists in unstructured emails, meeting notes and messages. Turning it into structured CRM fields and spotting follow-up signals is a language task that AI handles well, while the decision to save, contact or prioritise a client stays with the deal owner."
+    }
+  },
+  "ai_capability_map": [
+    {
+      "opportunity": "Identify which emails, meetings and messages are sales-related (new lead, existing deal, existing client) and which are not.",
+      "capability": "Classification"
+    },
+    {
+      "opportunity": "Extract structured CRM fields from conversations: company, contact, source, requirement, budget or timeline if stated, stage and agreed next step.",
+      "capability": "Information extraction and Structured output"
+    },
+    {
+      "opportunity": "Match a conversation to the correct existing contact, company and deal to avoid duplicates.",
+      "capability": "Entity matching (Classification)"
+    },
+    {
+      "opportunity": "Detect follow-up signals such as revisit dates, unanswered proposals and new client needs, and suggest a reminder with a date.",
+      "capability": "Signal detection (Classification) and Generative AI"
+    },
+    {
+      "opportunity": "Summarise the conversation into a short CRM note and suggest possible cross-sell or upsell opportunities for existing clients, with the evidence used.",
+      "capability": "Generative AI with grounded summarisation"
+    },
+    {
+      "opportunity": "Find revisit dates and deferrals, such as 'check back around Q2 2026' or 'decision deferred to the July board', and turn them into dated reminders.",
+      "capability": "Information extraction (date resolution)"
+    },
+    {
+      "opportunity": "Split an internal note or pipeline review that discusses several deals into one update per deal, matched to the right CRM record.",
+      "capability": "Information extraction and Entity matching"
+    },
+    {
+      "opportunity": "Draft a short follow-up email from the deal's CRM record and latest conversations, for the owner to edit and send themselves.",
+      "capability": "Generative AI with grounded generation"
+    },
+    {
+      "opportunity": "Answer plain-language questions about the pipeline, such as 'which proposals have had no reply for 30 days?', citing the deals and quotes used.",
+      "capability": "Grounded question answering (RAG over CRM and conversations)"
+    }
+  ],
+  "personas": [
+    {
+      "type": "Primary",
+      "name": "Founder or CEO",
+      "description": "Closes most deals while running day-to-day operations and travelling. Uses email, calendar, LinkedIn and messaging apps all day.",
+      "goal": "Convert every qualified lead and client conversation into revenue, with minimal CRM administration.",
+      "frustration": "Has no time to update the CRM, so follow-ups slip and opportunities depend on memory."
+    },
+    {
+      "type": "Secondary",
+      "name": "Salesperson",
+      "description": "The one dedicated salesperson. Owns follow-ups and pipeline hygiene, and needs the founders' conversations to be visible in the CRM."
+    },
+    {
+      "type": "Secondary",
+      "name": "Leadership reviewer",
+      "description": "Founders and CEO in their review role. Need an accurate pipeline view to plan revenue and spot inactive deals."
+    }
+  ],
+  "user_stories": [
+    {
+      "as_a": "Founder",
+      "i_want": "Have a draft CRM record created from a new lead email or meeting",
+      "so_that": "I don't have to type it in later",
+      "acceptance": "**Given** a new sales conversation in a connected channel, **when** it is detected, **then** a draft record with source, contact, requirement and next step appears in my review queue within 15 minutes."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "Confirm, edit or discard each draft before it is saved",
+      "so_that": "the CRM only holds information I have checked",
+      "acceptance": "**Given** a draft record, **when** I review it, **then** nothing is written to the CRM until I confirm it, and I can edit any field in one screen."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "Get a reminder when a follow-up is due or a proposal has no reply",
+      "so_that": "no client commitment is forgotten",
+      "acceptance": "**Given** a detected follow-up date or a proposal unanswered for 7 days, **when** the date arrives, **then** I receive a reminder with the deal, the last message and the suggested next step."
+    },
+    {
+      "as_a": "Salesperson",
+      "i_want": "See every deal's last contact, next step and status in one dashboard",
+      "so_that": "I can chase inactive deals before they go cold",
+      "acceptance": "**Given** open deals, **when** I open the dashboard, **then** deals with no next step or no contact for more than 14 days are highlighted at the top."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "See why the assistant suggested a field, reminder or cross-sell idea",
+      "so_that": "I can trust or correct it quickly",
+      "acceptance": "**Given** any suggestion, **when** I open it, **then** I see the source message or meeting it came from."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "Be warned if a lead or contact already exists",
+      "so_that": "the CRM does not fill with duplicates",
+      "acceptance": "**Given** a draft that matches an existing contact or deal, **when** it is shown, **then** the assistant proposes an update to the existing record instead of a new one."
+    },
+    {
+      "as_a": "Leadership reviewer",
+      "i_want": "Access a log of every assistant action",
+      "so_that": "we can check accuracy and investigate any issue",
+      "acceptance": "**Given** any assistant action (draft, update, reminder, discard), **when** it occurs, **then** it is logged with time, user, source and outcome. No action is lost."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "Draft a follow-up email for a deal that is due",
+      "so_that": "I can reply in under 2 minutes without starting from a blank page",
+      "acceptance": "**Given** a due follow-up, **when** I click Draft reply, **then** a draft that uses only facts from the deal's records appears, each fact quoted, unverified facts flagged; **nothing is sent** and I copy it or open it in my own email app."
+    },
+    {
+      "as_a": "Leadership reviewer",
+      "i_want": "Ask questions about the pipeline in plain English",
+      "so_that": "I get answers in the weekly review without building reports",
+      "acceptance": "**Given** a question, **when** I ask it, **then** the answer names the deals with their CRM ids, links to them, shows the quotes it relied on, says when the CRM is older than the latest conversation, and changes nothing."
+    },
+    {
+      "as_a": "Founder",
+      "i_want": "See how long each deal has until, or since, its follow-up was due",
+      "so_that": "I act on the most urgent client first",
+      "acceptance": "**Given** due follow-ups, **when** I open Follow-ups or the Dashboard, **then** I see one card per deal, most urgent first, with a live **Due in / Overdue by** timer."
+    },
+    {
+      "as_a": "Salesperson",
+      "i_want": "See open deals by stage with the ones needing attention first, and fix them from the board",
+      "so_that": "no deal is left without an owner or a next step",
+      "acceptance": "**Given** open deals, **when** I open the Pipeline, **then** each stage shows its value and how many deals need attention, and I can assign an owner or add a next step from the card; **every change is logged**."
+    }
+  ],
+  "model_strategy": "The choice of model and build approach belongs to engineering, agreed with product. Product's requirements are: the assistant must work from AtliQ's own emails, calendar, LinkedIn messages and CRM data at request time; it must never write to the CRM or contact a client without the deal owner's confirmation; it must keep client data within AtliQ's approved environment; and the running cost must stay well below the value of one recovered deal per month. **Prototype findings (Oct 2026):** a hosted open-weight language model with schema-constrained output met the prototype's needs; every client fact must quote its source or it is dropped, and a rules-only fallback keeps capture working (with every draft marked for review) when the AI is unavailable. Measured on the prototype, the AI cost is about **$4 per month** for 100 conversations a day plus on-demand email drafts and questions, and stays under **$35 per month** on the most expensive of the four models compared (see the LLM cost workbook v1.1). The free provider tier ran out during testing, so a paid tier is needed for production. Build versus buy against the CRM's own AI features is still open (section 16).",
+  "functional_requirements": [
+    {
+      "id": "FR-1",
+      "requirement": "Connect to the users' email, calendar and the CRM with their consent, using read access for email and calendar.",
+      "priority": "Must",
+      "status": "Partial: no live connectors"
+    },
+    {
+      "id": "FR-2",
+      "requirement": "Classify each new email, meeting and message as new lead, existing deal, existing client or not sales-related.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-3",
+      "requirement": "Extract CRM fields (company, contact, source, requirement, stage, next step and date) into a draft record.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-4",
+      "requirement": "Place every draft in a review queue; save to the CRM only after the deal owner confirms or edits it.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-5",
+      "requirement": "Match drafts to existing contacts, companies and deals, and propose updates instead of duplicates.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-6",
+      "requirement": "Detect follow-up signals (revisit dates, unanswered proposals, new needs) and create reminders for the deal owner.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-7",
+      "requirement": "Show a pipeline dashboard with last contact, next step and status per deal, highlighting deals inactive for more than 14 days or with no next step.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-8",
+      "requirement": "Link every suggested field, reminder and note to its source message or meeting.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-9",
+      "requirement": "Log every assistant action with time, user, source and outcome.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-10",
+      "requirement": "Let users exclude specific contacts, threads or labels (for example personal or confidential) from processing.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-11",
+      "requirement": "Suggest cross-sell and upsell opportunities for existing clients, with the evidence used.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-12",
+      "requirement": "Capture leads shared from LinkedIn through the official integration or a one-click share, not scraping.",
+      "priority": "Should",
+      "status": "Partial: paste only"
+    },
+    {
+      "id": "FR-13",
+      "requirement": "Send a daily summary of new drafts, due follow-ups and inactive deals.",
+      "priority": "Should",
+      "status": "Partial: in-app only"
+    },
+    {
+      "id": "FR-14",
+      "requirement": "Capture leads from a quick voice note or business-card photo after an event.",
+      "priority": "Could",
+      "status": "Open"
+    },
+    {
+      "id": "FR-15",
+      "requirement": "Split an internal note that discusses several deals into one update draft per deal, matched to the right CRM record; unknown companies become new-lead drafts.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-16",
+      "requirement": "Detect revisit dates and deferrals and create dated reminders, never earlier than the conversation date.",
+      "priority": "Must",
+      "status": "Built"
+    },
+    {
+      "id": "FR-17",
+      "requirement": "Draft a follow-up email for the owner to edit and send from their own mailbox; every client fact quoted, unverified facts flagged; the assistant never sends it.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-18",
+      "requirement": "Answer questions about the pipeline, read-only, citing deals and quotes, and preferring the newest conversation over stale CRM notes.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-19",
+      "requirement": "Show one follow-up card per deal with a live Due in / Overdue by timer, ranked by reason, days overdue and deal value, on Follow-ups and the Dashboard.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-20",
+      "requirement": "Show every CRM record (open, won, lost) with its origin; add a lead with a duplicate check; import and export CSV or Excel.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-21",
+      "requirement": "Show the pipeline as a stage board and an action queue, with owner assignment and next-step entry from the card, each change logged.",
+      "priority": "Should",
+      "status": "Built"
+    },
+    {
+      "id": "FR-22",
+      "requirement": "Let an admin pause all processing in one switch (kill switch), with queued items kept for later.",
+      "priority": "Must",
+      "status": "Built"
+    }
+  ],
+  "context": {
+    "inputs": [
+      {
+        "input": "Business emails",
+        "source": "Users' work mailboxes, read-only, with consent. Subject, body, sender, recipients, attachments' names."
+      },
+      {
+        "input": "Calendar meetings",
+        "source": "Work calendars: title, attendees, time and meeting notes if available."
+      },
+      {
+        "input": "LinkedIn conversations",
+        "source": "Official integration or user-shared messages only (assumption: API access to be confirmed)."
+      },
+      {
+        "input": "CRM records",
+        "source": "Existing contacts, companies, deals, stages and history, used for matching and context."
+      },
+      {
+        "input": "AtliQ service catalogue",
+        "source": "List of AtliQ services (custom software, data platforms, AI solutions) used to suggest cross-sell opportunities. Maintained by leadership."
+      },
+      {
+        "input": "Prototype sample data",
+        "source": "AtliQ's CRM export (**40 records**), **34 emails** and **16 meeting notes**, used to build and test the prototype. No live mailbox or calendar was connected."
+      },
+      {
+        "input": "Deal record and recent conversations (on demand)",
+        "source": "For email drafts and pipeline questions: the deal's CRM fields, open reminders and its latest saved conversations only, plus a one-line snapshot of every open deal for questions."
+      }
+    ],
+    "excluded": [
+      {
+        "attribute": "Personal and non-business emails and messages",
+        "reason": "Not relevant to sales, and processing them would breach users' privacy. Filtered out by classification and user exclusion rules."
+      },
+      {
+        "attribute": "Passwords, bank details, payment data and credentials in messages",
+        "reason": "Never needed in a CRM. Masked before processing and never stored."
+      },
+      {
+        "attribute": "Sensitive personal data about contacts (health, religion, political views, family details)",
+        "reason": "Not needed for sales and restricted under GDPR and DPDP."
+      },
+      {
+        "attribute": "One client's confidential project details when suggesting ideas for another client",
+        "reason": "Prevents leaking confidential information between clients. Cross-sell suggestions use only that client's own history."
+      },
+      {
+        "attribute": "Threads, labels or contacts the user has marked as excluded",
+        "reason": "Gives users control over what the assistant can see."
+      },
+      {
+        "attribute": "Masked values and other clients' conversations in email drafts and answers",
+        "reason": "An email draft uses only that deal's own records; masked values such as card numbers are never shown to the AI or reproduced."
+      }
+    ]
+  },
+  "nfr": [
+    {
+      "category": "Performance",
+      "requirement": "Draft record available **within 15 minutes** of an email or meeting ending. Dashboard loads in under 3 seconds."
+    },
+    {
+      "category": "Reliability / uptime",
+      "requirement": "99.5% availability. If the assistant is unavailable, the CRM works as normal. No detected conversation or reminder is silently dropped. If the AI provider's usage limit is reached, items wait in the queue and are retried automatically when it resets; users see a plain-language message."
+    },
+    {
+      "category": "Security",
+      "requirement": "Single sign-on, role-based access in the CRM, encrypted connections, and least-privilege read access to email and calendar."
+    },
+    {
+      "category": "Privacy and compliance",
+      "requirement": "Data stays in the approved region, encrypted at rest; compliant with GDPR (international clients) and India's DPDP Act; retention aligned with CRM policy; users can delete processed data."
+    },
+    {
+      "category": "Usability",
+      "requirement": "Review and confirm a draft in **under 1 minute**, including on mobile while travelling."
+    },
+    {
+      "category": "Scalability",
+      "requirement": "Supports the current 4 users and up to 20 users without redesign, at up to 500 sales-related messages per day (assumption)."
+    },
+    {
+      "category": "Integrations",
+      "requirement": "Email and calendar (work accounts), the existing CRM, LinkedIn (official options only). Confirm API availability and limits for each before build."
+    },
+    {
+      "category": "Running cost",
+      "requirement": "AI cost **under $50 per month** at 100 conversations a day plus on-demand drafts and questions (prototype estimate about $4)."
+    }
+  ],
+  "behaviour": {
+    "outputs": [
+      {
+        "field": "Draft CRM record",
+        "description": "New lead or update with company, contact, source, requirement, stage and next step, each field linked to its source."
+      },
+      {
+        "field": "Duplicate match",
+        "description": "The existing contact or deal the draft appears to belong to, with a suggested merge or update."
+      },
+      {
+        "field": "Follow-up reminder",
+        "description": "Deal, reason (for example 'proposal unanswered for 7 days'), suggested date and last message."
+      },
+      {
+        "field": "Conversation summary note",
+        "description": "Three to five plain sentences describing what was discussed and agreed."
+      },
+      {
+        "field": "Pipeline dashboard",
+        "description": "Every open deal with last contact, next step, status, and flags for inactivity or missing next step."
+      },
+      {
+        "field": "Cross-sell suggestion",
+        "description": "Possible additional service for an existing client, with the evidence from that client's own conversations."
+      },
+      {
+        "field": "Per-deal updates from an internal note",
+        "description": "One update draft per deal discussed in a pipeline review, tagged 'From internal meeting'."
+      },
+      {
+        "field": "Follow-up email draft",
+        "description": "Subject and body under 150 words with the facts used and their quotes; copied or opened in the owner's own email app, never sent by the assistant."
+      },
+      {
+        "field": "Pipeline answer",
+        "description": "A short answer naming deals with CRM ids, links to them, and the quotes relied on; unverified quotes flagged."
+      },
+      {
+        "field": "Live follow-up timer",
+        "description": "Due in or overdue by, per deal, coloured by urgency, on Follow-ups and the Dashboard."
+      }
+    ],
+    "states": [
+      {
+        "state": "High-confidence draft",
+        "trigger": "Clear sales conversation with all key fields found",
+        "behaviour": "Show the draft in the review queue with sources. **Never save to the CRM without confirmation.**"
+      },
+      {
+        "state": "Low-confidence or incomplete draft",
+        "trigger": "Unclear whether it is a sales conversation, or key fields missing",
+        "behaviour": "Mark as 'needs review', leave missing fields empty rather than guess, and ask the owner to complete them."
+      },
+      {
+        "state": "Possible duplicate",
+        "trigger": "Contact, company or deal already exists in the CRM",
+        "behaviour": "Propose an update to the existing record. Never create a second record without confirmation."
+      },
+      {
+        "state": "Not sales-related or excluded",
+        "trigger": "Personal message, internal email or excluded thread",
+        "behaviour": "Do not process or store it. Log only that it was skipped."
+      },
+      {
+        "state": "Follow-up due",
+        "trigger": "Detected date reached, proposal unanswered for 7 days, or deal inactive for 14 days",
+        "behaviour": "Remind the deal owner with context. Never contact the client automatically."
+      },
+      {
+        "state": "Integration unavailable",
+        "trigger": "Email, calendar or CRM connection fails",
+        "behaviour": "Show a clear warning, queue items for retry, and log the gap so nothing is lost silently."
+      },
+      {
+        "state": "Internal note about several deals",
+        "trigger": "An internal pipeline review mentions two or more deals",
+        "behaviour": "Create one update draft per deal, each with its quote; **nothing is saved without the owner's confirmation**."
+      },
+      {
+        "state": "AI usage limit reached",
+        "trigger": "The AI provider rejects calls for the rest of the period",
+        "behaviour": "Keep items queued, retry automatically when the limit resets, and show a plain-language message."
+      },
+      {
+        "state": "AI unavailable or switched off",
+        "trigger": "No AI access configured, or the provider is down",
+        "behaviour": "Fall back to rules-only capture; mark every draft 'needs review'; allow re-running with AI later."
+      }
+    ],
+    "decision_flow": [
+      "A sales conversation happens in a connected channel: email, calendar or LinkedIn.",
+      "The assistant checks exclusion rules and skips personal or excluded items.",
+      "It classifies the item as new lead, existing deal, existing client, internal note about several deals, or not sales-related; non-sales items are skipped and logged.",
+      "If it is an internal note about several deals, it creates one update draft per deal instead.",
+      "It extracts CRM fields and masks sensitive data such as bank details or passwords.",
+      "A separate date check finds revisit dates and deferrals.",
+      "It checks the CRM for a matching contact, company or deal.",
+      "If a match exists, it prepares an update to the existing record; otherwise a new lead draft.",
+      "If confidence is low or fields are missing, the draft is marked 'needs review' with empty fields rather than guesses.",
+      "The draft is placed in the deal owner's review queue with source links.",
+      "The owner confirms, edits or discards it; only confirmed records are saved to the CRM.",
+      "The assistant detects follow-up signals and schedules reminders for the owner.",
+      "When a reminder is due, the owner is notified with context and decides what to do; the assistant never contacts the client.",
+      "The dashboard updates last contact, next step and inactivity flags.",
+      "Every action is logged; edits and discards are used to improve accuracy.",
+      "On demand, the owner can draft a follow-up email or ask a question about the pipeline; both are read-only, cite their sources and never contact the client."
+    ],
+    "mermaid": "flowchart TD\n  A[Sales conversation in email, calendar or LinkedIn] --> B{Excluded or not sales related?}\n  B -- Yes --> C[Skip and log]\n  B -- No --> P{Internal note on several deals?}\n  P -- Yes --> Q[One update draft per deal]\n  P -- No --> D[Extract fields and dates, mask sensitive data]\n  D --> E{Matches existing record?}\n  E -- Yes --> F[Prepare update to existing record]\n  E -- No --> G[Prepare new lead draft]\n  F --> H{Confident and complete?}\n  G --> H\n  H -- No --> I[Mark needs review, leave gaps empty]\n  H -- Yes --> J[Add to owner review queue with sources]\n  I --> J\n  Q --> J\n  J --> K{Owner decision}\n  K -- Discard --> L[Log discard and reason]\n  K -- Confirm or edit --> M[Save to CRM and set reminders]\n  M --> N[Remind owner with live timer, update dashboard, log all actions]\n  L --> N"
+  },
+  "guardrails_intro": "Each failure mode has a required guardrail. For AtliQ, the highest risks are wrong information entering the CRM and client data being exposed or misused.",
+  "guardrails": [
+    {
+      "failure_mode": "Wrong or invented field values",
+      "what_goes_wrong": "The assistant records a wrong requirement, budget or date, and the team acts on it.",
+      "guardrail": "Every field links to its source; missing values stay empty; nothing is saved without owner confirmation.",
+      "owner": "PM / Eng"
+    },
+    {
+      "failure_mode": "Personal data processed",
+      "what_goes_wrong": "Personal or non-business messages are read or stored.",
+      "guardrail": "Sales-only classification, user exclusion rules, and personal items never stored.",
+      "owner": "Eng / DPO"
+    },
+    {
+      "failure_mode": "Confidential data shared across clients",
+      "what_goes_wrong": "A cross-sell suggestion or summary reveals one client's details in another client's record.",
+      "guardrail": "Suggestions use only the same client's history; records are separated by client.",
+      "owner": "DS / Eng"
+    },
+    {
+      "failure_mode": "Duplicate or merged records",
+      "what_goes_wrong": "The same lead is created twice, or two different clients are merged.",
+      "guardrail": "Duplicate check before every draft; merges require owner confirmation.",
+      "owner": "Eng"
+    },
+    {
+      "failure_mode": "Missed follow-up signal",
+      "what_goes_wrong": "A commitment such as 'check back in Q4' is not detected, and the deal is lost.",
+      "guardrail": "Every open deal must have a next step; deals without one are flagged in the dashboard and daily summary.",
+      "owner": "PM / DS"
+    },
+    {
+      "failure_mode": "Automated client contact",
+      "what_goes_wrong": "A message is sent to a client without the owner's approval, damaging the relationship.",
+      "guardrail": "V1 has no sending capability; reminders go to AtliQ users only.",
+      "owner": "PM"
+    },
+    {
+      "failure_mode": "Over-reliance on suggestions",
+      "what_goes_wrong": "Users confirm drafts without reading them, so errors build up in the CRM.",
+      "guardrail": "Low-confidence fields highlighted; monthly sample audit of confirmed records.",
+      "owner": "PM / Salesperson"
+    },
+    {
+      "failure_mode": "Ungrounded email draft or answer",
+      "what_goes_wrong": "A draft email or pipeline answer states a price, date or promise that is not in the records.",
+      "guardrail": "Every client fact must quote the records; unquoted facts are flagged; the owner edits and sends the email from their own mailbox.",
+      "owner": "PM / Eng"
+    },
+    {
+      "failure_mode": "Stale CRM data trusted",
+      "what_goes_wrong": "An answer or email relies on an old CRM note when a newer conversation says otherwise.",
+      "guardrail": "The newest dated conversation wins; the answer points out that the CRM is out of date.",
+      "owner": "DS"
+    },
+    {
+      "failure_mode": "Follow-ups nobody owns",
+      "what_goes_wrong": "Deals without an owner generate reminders that no one sees.",
+      "guardrail": "The pipeline queue lists ownerless deals first and lets anyone assign an owner in one click; the assignment is logged.",
+      "owner": "PM / Founders"
+    },
+    {
+      "failure_mode": "Provider details exposed",
+      "what_goes_wrong": "Raw AI-provider errors show account identifiers or model details to users.",
+      "guardrail": "Users see plain-language errors only; full details stay in the server log for troubleshooting.",
+      "owner": "Eng"
+    }
+  ],
+  "evals": [
+    {
+      "dimension": "Sales conversation detection",
+      "definition": "On **300 labelled past emails and meetings**, correctly identifies sales-related items with at least **90% precision and 90% recall**. Launch blocker."
+    },
+    {
+      "dimension": "Field extraction accuracy",
+      "definition": "On 150 labelled sales conversations, key fields (company, contact, requirement, next step) correct in **at least 90%** of cases. Launch blocker."
+    },
+    {
+      "dimension": "Follow-up signal detection",
+      "definition": "On 100 conversations with known commitments, detects the follow-up and correct date in **at least 85%** of cases."
+    },
+    {
+      "dimension": "Duplicate matching",
+      "definition": "Correctly matches existing contacts or deals in at least 95% of 100 test cases, with **zero** wrong merges."
+    },
+    {
+      "dimension": "Groundedness",
+      "definition": "**100%** of saved fields and at least 95% of summary sentences traceable to a source message."
+    },
+    {
+      "dimension": "Personal data filtering",
+      "definition": "**Zero** personal or excluded items stored across 200 test messages."
+    },
+    {
+      "dimension": "Draft usefulness",
+      "definition": "In beta, at least 80% of drafts confirmed with no or minor edits."
+    },
+    {
+      "dimension": "Revisit date detection",
+      "definition": "On **50 conversations** with deferrals or revisit dates, the correct date is found in at least **85%** of cases, and no date earlier than the conversation."
+    },
+    {
+      "dimension": "Internal note split",
+      "definition": "On **20 internal notes**, every deal discussed produces one correctly matched draft in at least **90%** of cases, with **zero** updates to the wrong deal."
+    },
+    {
+      "dimension": "Email draft groundedness",
+      "definition": "On **50 drafts**, **100%** of client-specific facts quote the records; at least **80%** sent with minor or no edits in beta."
+    },
+    {
+      "dimension": "Pipeline answer accuracy",
+      "definition": "On **50 questions** with known answers, at least **90%** correct and **100%** of cited deals exist."
+    }
+  ],
+  "success_metrics": [
+    {
+      "layer": "North Star",
+      "metric": "% of new leads recorded within 24 hours with source, requirement and next step",
+      "target": "**95%**, gated by field extraction accuracy of at least 90%."
+    },
+    {
+      "layer": "Pipeline hygiene",
+      "metric": "% of open deals and proposals with a scheduled next step",
+      "target": "**100%**, with no deal inactive for more than 14 days."
+    },
+    {
+      "layer": "Responsiveness",
+      "metric": "% of due follow-ups actioned within 2 days",
+      "target": "**80%**, measured from the follow-up timers."
+    },
+    {
+      "layer": "Revenue",
+      "metric": "Cross-sell and upsell pipeline from existing clients",
+      "target": "**+20%** within two quarters of full release."
+    },
+    {
+      "layer": "Efficiency",
+      "metric": "Time spent on CRM updates per user per week",
+      "target": "Down 70% vs baseline (baseline measured in shadow mode)."
+    },
+    {
+      "layer": "Trust signal",
+      "metric": "Draft confirmation rate (confirmed with no or minor edits)",
+      "target": "Above 80%."
+    },
+    {
+      "layer": "Guardrail",
+      "metric": "Personal or cross-client data incidents",
+      "target": "Zero."
+    }
+  ],
+  "scope": {
+    "out_of_scope": [
+      {
+        "item": "Sending emails or messages to clients automatically",
+        "reason": "Client communication stays with AtliQ's leaders. The assistant drafts follow-up emails; the owner sends them from their own mailbox. Auto-sending may be revisited for approved templates after V2."
+      },
+      {
+        "item": "Deciding deal priority, pricing or discounts",
+        "reason": "Commercial decisions stay human."
+      },
+      {
+        "item": "Scraping LinkedIn or other platforms",
+        "reason": "Breaches platform terms; only official integrations or user-shared data."
+      },
+      {
+        "item": "Monitoring employees' performance",
+        "reason": "Not the purpose of the product and would reduce trust."
+      }
+    ],
+    "v1_ships": [
+      "Email and calendar capture for the 4 sales users",
+      "Draft records with owner confirmation, including per-deal updates from internal notes",
+      "Duplicate matching and source links",
+      "Follow-up reminders with revisit dates, live timers and a daily summary",
+      "Follow-up email drafts the owner edits and sends (nothing sent by the assistant)",
+      "Ask your pipeline: read-only answers with sources",
+      "Pipeline dashboard, stage board and action queue",
+      "CRM records page with import and export",
+      "English only"
+    ],
+    "deferred": [
+      "LinkedIn capture, pending API confirmation",
+      "Messaging apps such as WhatsApp",
+      "Voice notes and business-card capture after events",
+      "Cross-sell suggestions for all users (built in the prototype; switched on after V1 data quality is proven)",
+      "Reminders by email or mobile push (the prototype shows them in the app only)",
+      "Auto-save for high-confidence updates, once trust is established"
+    ]
+  },
+  "rollout": {
+    "stages": [
+      {
+        "stage": "Prototype (Oct 2026, done)",
+        "definition": "Built and tested on AtliQ's sample data (40 CRM records, 34 emails, 16 meeting notes). No live mailbox connected; nothing written to the real CRM.",
+        "gate": "Founders walk through review, follow-ups, email drafts and questions; **24 automated tests pass**; launch-blocker eval sets labelled before alpha."
+      },
+      {
+        "stage": "Alpha / shadow mode (Dec 2026)",
+        "definition": "Assistant processes email and calendar for 2 users and creates drafts that are compared with what users actually record. Nothing is saved to the CRM.",
+        "gate": "Field accuracy at least 90%; zero personal data stored."
+      },
+      {
+        "stage": "Closed beta (Jan 2027)",
+        "definition": "All 4 sales users review and confirm real drafts; reminders switched on.",
+        "gate": "Launch-blocker evals met; at least 80% of drafts confirmed with minor or no edits; zero guardrail breaches."
+      },
+      {
+        "stage": "Phased rollout (Feb 2027)",
+        "definition": "Dashboard and daily summary live; leadership uses the dashboard in weekly pipeline reviews.",
+        "gate": "90% of new leads recorded within 24 hours; every open deal has a next step."
+      },
+      {
+        "stage": "Full release (Mar 2027)",
+        "definition": "Standard way of working for all sales users; LinkedIn and cross-sell planning begins.",
+        "gate": "60 days stable with all metrics on target."
+      }
+    ],
+    "kill_switches": [
+      "Any record is saved to the CRM, or any client is contacted, without the owner's confirmation.",
+      "Personal or non-business data is found stored.",
+      "One client's confidential information appears in another client's record or suggestion.",
+      "A data breach involving email, calendar or CRM access.",
+      "Wrong merges or corrupted CRM records found in a weekly sample.",
+      "The action log is altered or has gaps.",
+      "Draft confirmation rate falls below 50% for two weeks, meaning the assistant creates more work than it saves.",
+      "An email draft or pipeline answer is found stating client facts that are not in the records, in a weekly sample."
+    ]
+  },
+  "timeline_note": "Dates are estimates to be confirmed with the engineering lead after capacity review; they are not a roadmap.",
+  "milestones": [
+    {
+      "milestone": "PRD approved",
+      "date": "Oct 2026",
+      "owner": "PM, Founders"
+    },
+    {
+      "milestone": "Working prototype on sample data",
+      "date": "Oct 2026 (done)",
+      "owner": "PM, Eng"
+    },
+    {
+      "milestone": "Integration feasibility confirmed (CRM, email, calendar, LinkedIn)",
+      "date": "Oct 2026",
+      "owner": "Eng"
+    },
+    {
+      "milestone": "Design complete (review queue, follow-ups, dashboard, pipeline board)",
+      "date": "Oct 2026 (done in prototype)",
+      "owner": "Design"
+    },
+    {
+      "milestone": "Engineering kickoff and eval set labelled",
+      "date": "Nov 2026",
+      "owner": "Eng Lead, Salesperson"
+    },
+    {
+      "milestone": "Alpha, shadow mode",
+      "date": "Dec 2026",
+      "owner": "PM, Eng"
+    },
+    {
+      "milestone": "Closed beta, all 4 users",
+      "date": "Jan 2027",
+      "owner": "PM"
+    },
+    {
+      "milestone": "Full release",
+      "date": "Mar 2027",
+      "owner": "PM, Founders"
+    }
+  ],
+  "open_questions": [
+    {
+      "question": "Which CRM does AtliQ use, and does it offer APIs or built-in AI capture we could use instead of building?",
+      "ticket_type": "Capability",
+      "owner": "PM, Eng",
+      "resolution": "Integration review and build-versus-buy comparison before build starts."
+    },
+    {
+      "question": "What share of leads is recorded today, and how long does recording take? (baseline unknown)",
+      "ticket_type": "Assumption to test",
+      "owner": "PM, Salesperson",
+      "resolution": "Compare 3 months of CRM entries with email and calendar activity; measure in shadow mode."
+    },
+    {
+      "question": "Can LinkedIn conversations be captured through an official integration?",
+      "ticket_type": "Capability",
+      "owner": "Eng",
+      "resolution": "Check available LinkedIn options; if none, use one-click sharing by users."
+    },
+    {
+      "question": "Will the founders give consent and accept the assistant reading their work email?",
+      "ticket_type": "Assumption to test",
+      "owner": "PM, Founders",
+      "resolution": "Walk through the exclusion controls and data handling; agree consent in writing."
+    },
+    {
+      "question": "What are AtliQ's data residency and retention requirements for client data?",
+      "ticket_type": "Legal / compliance",
+      "owner": "Founders, Legal",
+      "resolution": "Confirm GDPR and DPDP obligations and client contract terms before alpha."
+    },
+    {
+      "question": "Will the founders review drafts consistently while travelling?",
+      "ticket_type": "Assumption to test",
+      "owner": "PM",
+      "resolution": "Track review-queue age in beta; add daily summary and mobile review if drafts wait more than 48 hours."
+    },
+    {
+      "question": "Is the AtliQ service catalogue documented well enough for cross-sell suggestions?",
+      "ticket_type": "RAG / content",
+      "owner": "Founders",
+      "resolution": "Write a one-page service list with typical client needs before cross-sell work starts."
+    },
+    {
+      "question": "Which email and calendar provider does AtliQ use, and what are its API limits?",
+      "ticket_type": "Capability",
+      "owner": "Eng",
+      "resolution": "Confirm before alpha; the prototype's sample mailbox sync is the stand-in."
+    },
+    {
+      "question": "Which paid AI tier is needed? The free tier ran out during prototype testing.",
+      "ticket_type": "Capability / cost",
+      "owner": "Eng, PM",
+      "resolution": "Size from the LLM cost workbook v1.1 (about 600,000 tokens a day at 100 conversations)."
+    },
+    {
+      "question": "Who owns deals with no owner? Their reminders reach nobody.",
+      "ticket_type": "Process",
+      "owner": "Founders",
+      "resolution": "Agree an owner rule; the pipeline queue already lists ownerless deals."
+    },
+    {
+      "question": "Should pipeline stages stay as the CRM's (New, Contacted, Proposal Sent) or add Qualified and Negotiation, as in the pipeline design?",
+      "ticket_type": "Process",
+      "owner": "Founders, Salesperson",
+      "resolution": "Decide in the first weekly review; the board follows the CRM's stages."
+    },
+    {
+      "question": "How should reminders reach owners outside the app?",
+      "ticket_type": "Capability",
+      "owner": "PM",
+      "resolution": "Test an email digest in beta; add push if follow-ups wait more than 2 days."
+    }
+  ]
+}

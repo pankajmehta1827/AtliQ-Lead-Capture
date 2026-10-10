@@ -1,0 +1,294 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Capture Pipeline (LangGraph)",
+    "output": ".archify/workflow-capture-pipeline-20261011-012311/capture-pipeline.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "guard",
+      "label": "Intake + guardrails",
+      "variant": "exception"
+    },
+    {
+      "id": "ai",
+      "label": "AI extraction"
+    },
+    {
+      "id": "crm",
+      "label": "CRM reasoning"
+    },
+    {
+      "id": "review",
+      "label": "Review queue + exits"
+    }
+  ],
+  "phases": [
+    {
+      "id": "protect",
+      "label": "Protect",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "understand",
+      "label": "Understand",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "decide",
+      "label": "Match + draft",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "item",
+    "excl",
+    "mask",
+    "classify",
+    "extract",
+    "ground",
+    "match",
+    "assess",
+    "draft"
+  ],
+  "nodes": [
+    {
+      "id": "item",
+      "lane": "guard",
+      "col": 0,
+      "type": "messagebus",
+      "label": "Source item",
+      "sublabel": "status queued",
+      "width": 132
+    },
+    {
+      "id": "skipped",
+      "lane": "review",
+      "col": 1,
+      "type": "external",
+      "label": "Skipped",
+      "sublabel": "excluded, body wiped",
+      "width": 132
+    },
+    {
+      "id": "notsales",
+      "lane": "crm",
+      "col": 2,
+      "type": "external",
+      "label": "Not sales",
+      "sublabel": "skipped, body wiped",
+      "width": 132
+    },
+    {
+      "id": "excl",
+      "lane": "guard",
+      "col": 1,
+      "type": "security",
+      "label": "Exclusion rules",
+      "sublabel": "private senders",
+      "width": 132
+    },
+    {
+      "id": "mask",
+      "lane": "guard",
+      "col": 2,
+      "type": "security",
+      "label": "PII masking",
+      "sublabel": "cards, IDs, keys",
+      "width": 132
+    },
+    {
+      "id": "classify",
+      "lane": "ai",
+      "col": 2,
+      "type": "backend",
+      "label": "Classify",
+      "sublabel": "sales or not",
+      "tag": "LLM",
+      "width": 132
+    },
+    {
+      "id": "extract",
+      "lane": "ai",
+      "col": 3,
+      "type": "backend",
+      "label": "Extract fields",
+      "sublabel": "value + evidence",
+      "tag": "LLM",
+      "width": 132
+    },
+    {
+      "id": "ground",
+      "lane": "ai",
+      "col": 4,
+      "type": "backend",
+      "label": "Ground + dates",
+      "sublabel": "quote check",
+      "width": 132
+    },
+    {
+      "id": "multi",
+      "lane": "crm",
+      "col": 3,
+      "type": "backend",
+      "label": "Multi-deal split",
+      "sublabel": "internal notes",
+      "tag": "LLM",
+      "width": 132
+    },
+    {
+      "id": "match",
+      "lane": "crm",
+      "col": 4,
+      "type": "backend",
+      "label": "Match CRM",
+      "sublabel": "company, deal",
+      "width": 132
+    },
+    {
+      "id": "assess",
+      "lane": "crm",
+      "col": 5,
+      "type": "backend",
+      "label": "Assess",
+      "sublabel": "confidence 0.7",
+      "width": 132
+    },
+    {
+      "id": "crosssell",
+      "lane": "review",
+      "col": 4,
+      "type": "backend",
+      "label": "Cross-sell",
+      "sublabel": "existing client",
+      "tag": "LLM",
+      "width": 132
+    },
+    {
+      "id": "draft",
+      "lane": "review",
+      "col": 5,
+      "type": "database",
+      "label": "Draft pending",
+      "sublabel": "owner confirms",
+      "width": 132
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-item-excl",
+      "from": "item",
+      "to": "excl",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-excl-mask",
+      "from": "excl",
+      "to": "mask",
+      "label": "allowed"
+    },
+    {
+      "id": "e-excl-skip",
+      "from": "excl",
+      "to": "skipped",
+      "label": "excluded",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-mask-classify",
+      "from": "mask",
+      "to": "classify",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-classify-extract",
+      "from": "classify",
+      "to": "extract",
+      "label": "deal"
+    },
+    {
+      "id": "e-classify-multi",
+      "from": "classify",
+      "to": "multi",
+      "label": "multi-deal",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-classify-notsales",
+      "from": "classify",
+      "to": "notsales",
+      "label": "not sales",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-extract-ground",
+      "from": "extract",
+      "to": "ground"
+    },
+    {
+      "id": "e-ground-match",
+      "from": "ground",
+      "to": "match"
+    },
+    {
+      "id": "e-match-assess",
+      "from": "match",
+      "to": "assess"
+    },
+    {
+      "id": "e-assess-draft",
+      "from": "assess",
+      "to": "draft",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-assess-crosssell",
+      "from": "assess",
+      "to": "crosssell",
+      "label": "client",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-crosssell-draft",
+      "from": "crosssell",
+      "to": "draft",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Provider split",
+      "items": [
+        "LLM steps use Claude Haiku 5.5 with typed structured output when LLM_PROVIDER=anthropic",
+        "Rules mode runs the same graph without a key"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Safety",
+      "items": [
+        "Excluded or non-sales items keep no body",
+        "Fields without a matching quote are dropped at grounding"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Output",
+      "items": [
+        "One draft per deal, flagged needs-review below 0.7",
+        "Multi-deal notes produce several drafts"
+      ]
+    }
+  ]
+}
