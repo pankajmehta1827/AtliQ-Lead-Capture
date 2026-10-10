@@ -11,6 +11,9 @@ follow-up signals, and shows each deal owner what to chase next, with live timer
 
 Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 
+**Live demo:** https://atliq-lead-capture-production.up.railway.app (sign-in needs the team's access code; ask the
+project owner).
+
 | Layer | Tech |
 |---|---|
 | Frontend | React 18 + TypeScript (Vite) |
@@ -146,6 +149,9 @@ worker waits and resumes when rate-limited. Use the Dev tier (pay-as-you-go) for
 ---
 
 ## Deploy to Railway
+
+The app runs at **https://atliq-lead-capture-production.up.railway.app** (service `AtliQ-Lead-Capture` with its own
+PostgreSQL). It redeploys from `main`. To set up a new environment:
 
 1. **New Project → Deploy from GitHub repo →** this repository. It builds from `Dockerfile`, and `railway.json`
    sets the health check to `/api/health`.
