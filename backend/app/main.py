@@ -33,7 +33,10 @@ async def lifespan(app: FastAPI):
         with SessionLocal() as db:
             if not db.scalar(select(func.count()).select_from(Deal)):
                 log.info("Seeding CRM from crm_export.csv: %s deals", import_crm_csv(db))
-    log.info("LLM mode: %s", f"Groq {s.groq_model}" if s.llm_enabled else "rules (no GROQ_API_KEY)")
+    capture = f"Claude {s.capture_claude_model}" if s.capture_provider == "anthropic" else f"Groq {s.groq_model}"
+    if not s.capture_llm_enabled:
+        capture = "rules (no API key)"
+    log.info("Capture AI: %s · drafts and Ask AI: %s", capture, f"Groq {s.groq_model}" if s.llm_enabled else "off")
     stop = asyncio.Event()
     tasks = [asyncio.create_task(worker_loop(stop)), asyncio.create_task(scheduler_loop(stop))]
     yield

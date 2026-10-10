@@ -161,7 +161,7 @@ def classify(state: CaptureState, config: RunnableConfig) -> CaptureState:
     crm_hint = (
         "; ".join(f"{m['lead_code']} {m['company']} (status {m['status']})" for m in pre[:3]) or "no CRM record found"
     )
-    if s.llm_enabled:
+    if s.capture_llm_enabled:
         from .llm import classify_chain, prompt_constants
 
         result = classify_chain().invoke(
@@ -207,7 +207,7 @@ def extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
                 f"service {deal.service_interest} | owner {deal.owner} | last contact {deal.last_contact_date} | "
                 f"next step {deal.next_step or deal.next_followup_date} | notes: {deal.notes}"
             )
-    if s.llm_enabled:
+    if s.capture_llm_enabled:
         from .llm import extract_chain, prompt_constants
 
         result = extract_chain().invoke(
@@ -249,7 +249,7 @@ def dates(state: CaptureState) -> CaptureState:
     item = state["item"]
     convo_date = _item_date(item)
     source = _conversation_text(item, state["masked_body"])
-    if s.llm_enabled:
+    if s.capture_llm_enabled:
         from .llm import dates_chain
 
         result = dates_chain().invoke({
@@ -275,7 +275,7 @@ def multi_extract(state: CaptureState, config: RunnableConfig) -> CaptureState:
     convo_date = _item_date(item)
     source = _conversation_text(item, state["masked_body"])
     mentioned = state.get("mentioned") or []
-    if s.llm_enabled:
+    if s.capture_llm_enabled:
         from .llm import multi_chain
 
         result = multi_chain().invoke({
@@ -497,7 +497,7 @@ def crosssell(state: CaptureState, config: RunnableConfig) -> CaptureState:
     s = get_settings()
     db = _db(config)
     deal = db.get(Deal, state["deal_id"])
-    if not deal or not s.llm_enabled:
+    if not deal or not s.capture_llm_enabled:
         return {"crosssell": [], "trace": _trace(state, "cross-sell: skipped")}
     from .llm import crosssell_chain, prompt_constants
 

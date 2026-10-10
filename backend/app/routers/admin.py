@@ -25,7 +25,7 @@ def public_config():
     return {
         "users": s.seller_list,
         "requires_access_code": bool(s.app_access_code),
-        "llm_mode": "llm" if s.llm_enabled else "rules",
+        "llm_mode": "llm" if (s.capture_llm_enabled or s.llm_enabled) else "rules",
         "today": s.today().isoformat(),
         "processing_enabled": s.processing_enabled,
         "inactive_days": s.inactive_days,

@@ -16,6 +16,8 @@ def friendly_error(text: str | None) -> str | None:
     low = text.lower()
     if "ratelimit" in low or "rate limit" in low or "429" in low:
         return "AI usage limit reached; it is retried automatically when the limit resets."
+    if "refusal" in low or "declined" in low:
+        return "The AI declined to process this conversation; add it to the CRM manually."
     if "badrequest" in low or "json" in low or "400" in low:
         return "The AI returned an unusable answer; it is retried automatically."
     if "timeout" in low or "connect" in low:
