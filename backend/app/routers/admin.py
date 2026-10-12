@@ -103,6 +103,19 @@ def set_processing(body: ProcessingBody, user: str = Depends(current_user), db: 
     return {"processing_enabled": body.enabled}
 
 
+class RemoveConversationsBody(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=100)
+
+
+@router.post("/admin/conversations/remove")
+def remove_conversations(body: RemoveConversationsBody, user: str = Depends(current_user), db: Session = Depends(get_db)):
+    """Remove captured conversations with their drafts, reminders and cross-sell ideas, and revert any CRM changes
+    they confirmed, so the same scenario can be captured again (demo and eval resets). Logged in the action log."""
+    from ..services.cleanup import remove_conversations as _remove
+
+    return _remove(db, body.ids, user)
+
+
 # ---------------------------------------------------------------- success metrics (PRD section)
 
 @router.get("/metrics")

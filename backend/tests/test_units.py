@@ -82,3 +82,21 @@ def test_friendly_error_hides_provider_details():
     msg = friendly_error(raw)
     assert "gpt" not in msg and "org_" not in msg and "limit" in msg
     assert friendly_error(None) is None
+
+
+def test_parse_plain_headers_pasted_from_mail_client():
+    """Headers without Markdown bold (copied from Outlook, Gmail or a rendered preview) still parse."""
+    text = (
+        "Email Thread: Vertex Constructions — revisit in October\n"
+        "From: P. Naidu <naidu@vertexcon.in>\n"
+        "To: Jay <jay@atliq.com>\n"
+        "Date: 2026-07-06\n"
+        "Subject: Site progress app — timing\n\n"
+        "Jay, the board approved budget, but only for Q4. Please check back with me in early October.\n"
+    )
+    item = parse_markdown_item(text, None, "email")
+    assert item["sender_email"] == "naidu@vertexcon.in"
+    assert item["occurred_at"] == date(2026, 7, 6)
+    assert item["subject"] == "Site progress app — timing"
+    assert item["channel"] == "email"
+    assert parse_markdown_item(text)["channel"] == "email"  # detected without a hint

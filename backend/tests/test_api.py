@@ -173,3 +173,44 @@ def test_reminder_deadline_reflects_how_late_the_deal_is(client):
     finedge = next(r for r in rems if r["lead_code"] == "L-1023" and r["kind"] == "proposal_unanswered")
     # last contact 2026-03-30 + 7 days, not the scan date
     assert finedge["due_date"] == "2026-07-10" and finedge["deadline"] == "2026-04-06"
+
+
+def test_remove_conversation_reverts_crm(client):
+    """Removing a captured conversation deletes its drafts and reminders and undoes the CRM changes it confirmed."""
+    deals = client.get("/api/deals").json()
+    deals = deals if isinstance(deals, list) else deals["deals"]
+    vertex = next(d for d in deals if d["lead_code"] == "L-1037")
+    before = client.get(f"/api/deals/{vertex['id']}").json()
+    before_deal = before["deal"]
+
+    r = client.post("/api/capture", json={
+        "channel": "email", "subject": "Site progress app timing",
+        "text": "From: P. Naidu <naidu@vertexcon.in>\nDate: 2026-07-06\n\nJay, the board approved budget for Q4. "
+                "Please check back with me in early October.",
+    })
+    item_id = r.json()["item"]["id"]
+    client.post("/api/capture/process")
+    draft = next(d for d in client.get("/api/drafts").json() if d["source"]["id"] == item_id)
+    client.post(f"/api/drafts/{draft['id']}/confirm", json={
+        "target_deal_id": vertex["id"], "edits": {"next_step": "Restart the site progress app",
+                                                  "next_step_date": "2026-10-01"}})
+    changed = client.get(f"/api/deals/{vertex['id']}").json()["deal"]
+    assert changed["next_step"] == "Restart the site progress app"
+
+    out = client.post("/api/admin/conversations/remove", json={"ids": [item_id]}).json()
+    assert out["removed"][0]["id"] == item_id and "L-1037" in out["deals_reverted"]
+    after = client.get(f"/api/deals/{vertex['id']}").json()
+    for k in ("next_step", "next_followup_date", "last_contact_date", "notes", "status", "owner", "contact_email"):
+        assert after["deal"].get(k) == before_deal.get(k), k
+    assert len(after["activities"]) == len(before["activities"])
+    # reminders that came from this conversation are gone (the scanner's own health reminders may remain)
+    assert not [r for r in after["reminders"] if r["source"] and r["source"]["id"] == item_id]
+    assert not [d for d in client.get("/api/drafts", params={"status": "confirmed"}).json()
+                if d["source"] and d["source"]["id"] == item_id]
+    assert all(i["id"] != item_id for i in client.get("/api/capture/items").json()["items"])
+    # the same text can now be captured again as a new conversation
+    again = client.post("/api/capture", json={"channel": "email", "subject": "Site progress app timing",
+                                              "text": "From: P. Naidu <naidu@vertexcon.in>\nDate: 2026-07-06\n\nJay, "
+                                                      "the board approved budget for Q4. Please check back with me "
+                                                      "in early October."}).json()
+    assert again["created"] is True

@@ -12,7 +12,14 @@ ISO_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 # Dataset-only editorial notes like "*(No reply sent as of 2026-07-10.)*" are ground truth for
 # evaluation, not part of the conversation, so they must never reach the model.
 EDITORIAL_RE = re.compile(r"\*\([^)]*\)\*")
-HEADER_RE = re.compile(r"^\*\*(From|To|Cc|Date|Subject|Attendees|Type|Duration):\*\*\s*(.*)$", re.I)
+# "**From:** …" in the Markdown files, plain "From: …" when pasted from a mail client or a rendered preview
+HEADER_RE = re.compile(r"^(?:\*\*)?(From|To|Cc|Date|Subject|Attendees|Type|Duration):(?:\*\*)?\s*(.*)$", re.I)
+FROM_LINE_RE = re.compile(r"^(?:\*\*)?From:(?:\*\*)?\s", re.I | re.M)
+
+
+def has_from_header(text: str) -> bool:
+    """True for an email thread, whether its headers are Markdown ("**From:**") or plain ("From:")."""
+    return bool(FROM_LINE_RE.search(text or ""))
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -43,13 +50,16 @@ def parse_markdown_item(text: str, filename: str | None = None, channel_hint: st
     text = strip_editorial(text.replace("\r\n", "\n"))
     lines = text.split("\n")
     title = next((ln[2:].strip() for ln in lines if ln.startswith("# ")), None)
+    if not title:  # pasted from a rendered view: the heading lost its "# ", so use the first short line
+        title = next((ln.strip() for ln in lines if ln.strip() and not HEADER_RE.match(ln.strip())
+                      and len(ln.strip()) <= 120), None)
 
     channel = channel_hint
     if not channel:
         lowered = (filename or "").lower()
         if "meeting" in lowered or (title and title.lower().startswith(("meeting", "internal"))):
             channel = "meeting"
-        elif "**From:**" in text:
+        elif has_from_header(text):
             channel = "email"
         else:
             channel = "meeting"

@@ -56,10 +56,10 @@ def enqueue_item(db: Session, parsed: dict[str, Any], ingested_by: str) -> tuple
 
 
 def _item_dict(si: SourceItem) -> dict[str, Any]:
-    from ..parsing import parse_markdown_item
+    from ..parsing import has_from_header, parse_markdown_item
 
     last_sender = None
-    if si.body and "**From:**" in si.body:
+    if si.body and has_from_header(si.body):
         last_sender = parse_markdown_item(si.body, si.external_ref, si.channel).get("last_sender_email")
     title = None
     if si.body:
