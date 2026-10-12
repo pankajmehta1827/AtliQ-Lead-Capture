@@ -78,6 +78,7 @@ def remove_conversations(db: Session, ids: list[int], user: str) -> dict[str, An
                     _restore(deal, attr, ch["from"])
             _drop_note(deal, act.summary)
             report["deals_reverted"].append(deal.lead_code)
+        db.flush()  # timeline rows reference the drafts: remove them before the drafts (Postgres enforces the FK)
         db.execute(delete(Reminder).where(Reminder.source_item_id == item_id))
         db.execute(delete(CrossSellSuggestion).where(CrossSellSuggestion.source_item_id == item_id))
         db.execute(delete(Draft).where(Draft.source_item_id == item_id))
