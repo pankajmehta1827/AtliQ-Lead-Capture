@@ -124,7 +124,7 @@ class Fact(_Strict):
 
 class EmailDraft(_Strict):
     subject: str
-    body: str = Field(description="Plain-text email body, greeting to sign-off. No placeholders except [your availability].")
+    body: str = Field(description="Plain-text email body, greeting to sign-off. Ready to send: no placeholders in square brackets.")
     facts: list[Fact] | None = Field(description="Every client-specific fact used in the email, each with a quote from the context.")
 
 

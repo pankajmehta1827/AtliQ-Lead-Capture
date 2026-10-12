@@ -99,7 +99,7 @@ def draft_email(db: Session, deal: Deal, user: str, instructions: str = "", remi
         subject = f"Following up: {deal.company.name if deal.company else 'next steps'}"
         body = (
             f"Hi {first},\n\nI wanted to follow up on {reason[0].lower() + reason[1:] if reason else 'our conversation'}. "
-            f"Could we {step[0].lower() + step[1:]}? I'm happy to work around your schedule: [your availability].\n\n"
+            f"Could we {step[0].lower() + step[1:]}? Just let me know a time that suits you.\n\n"
             f"Best regards,\n{sender}\nAtliQ Technologies"
         )
         facts = _check([{"fact": r.reason, "evidence": r.reason} for r in rems[:1]], context)

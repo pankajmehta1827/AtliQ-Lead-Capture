@@ -85,6 +85,23 @@ def test_manual_capture_masks_secrets(client):
     assert any(f["due_date"] == "2026-07-20" for f in d["followups"])
 
 
+def test_review_queue_newest_first(client):
+    """A lead change just captured from an email or meeting note goes to the top of the queue."""
+    client.post("/api/capture/sample")
+    client.post("/api/capture/process", params={"limit": 50})
+    r = client.post("/api/capture", json={
+        "channel": "email",
+        "text": "Hi Jay, we would like a data platform for our 12 stores. Budget 40k. Can we talk on 22 Jul?",
+        "contact_name": "Ravi Shah", "contact_email": "ravi@kitebrook.in", "subject": "KiteBrook data platform",
+    })
+    assert r.status_code == 200
+    client.post("/api/capture/process")
+    drafts = client.get("/api/drafts").json()
+    assert drafts[0]["source"]["subject"] == "KiteBrook data platform"
+    stamps = [d["created_at"] for d in drafts]
+    assert stamps == sorted(stamps, reverse=True)
+
+
 def test_reminder_scan_and_summary(client):
     assert client.post("/api/reminders/scan").json()["created"] > 0
     assert client.post("/api/reminders/scan").json()["created"] == 0  # deduplicated

@@ -32,7 +32,8 @@ def list_drafts(
 ):
     q = (
         select(Draft).options(joinedload(Draft.source_item), joinedload(Draft.deal))
-        .where(Draft.status == status).order_by(Draft.needs_review, Draft.created_at.desc())
+        # newest first: a lead change just captured from an email or meeting note lands at the top of the queue
+        .where(Draft.status == status).order_by(Draft.created_at.desc(), Draft.id.desc())
     )
     if owner:
         q = q.where(Draft.owner == owner)

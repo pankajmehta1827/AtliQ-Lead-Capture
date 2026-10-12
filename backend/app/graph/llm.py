@@ -113,7 +113,8 @@ Rules:
 - Address the most important open point first (reason for the follow-up), then propose one clear next step.
 - Use the most recent conversation as the truth; CRM notes may be stale. Today is in the CONTEXT: never propose
   a date that is already past, and acknowledge a delay on AtliQ's side briefly if the client has been waiting.
-- If a time slot is needed write [your availability] rather than inventing one.
+- Never invent a meeting time. If a time is needed and none is agreed in the CONTEXT, ask the client to suggest one
+  that suits them. Never leave placeholders in square brackets: the email must be ready to send as written.
 - List every client-specific fact you used in `facts`, each with a verbatim quote from the CONTEXT.
 - Never include masked values like [MASKED_CARD].
 Extra instructions from the seller (may be empty): {instructions}

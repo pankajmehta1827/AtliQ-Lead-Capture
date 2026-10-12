@@ -23,6 +23,10 @@ export default function EmailDraftPanel({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Parents re-render every second (live timers) and pass a fresh reminderIds array each time; key the draft on
+  // the ids' values, not the array identity, or every tick would write (and pay for) a new email.
+  const reminderKey = (reminderIds ?? []).join(",");
+
   const generate = useCallback(
     async (extra = "") => {
       setBusy(true);
@@ -30,7 +34,7 @@ export default function EmailDraftPanel({
       try {
         const d = await api<EmailDraft>(`/api/deals/${dealId}/email-draft`, {
           method: "POST",
-          json: { instructions: extra, reminder_ids: reminderIds ?? [] },
+          json: { instructions: extra, reminder_ids: reminderKey ? reminderKey.split(",").map(Number) : [] },
         });
         setDraft(d);
         setSubject(d.subject);
@@ -41,7 +45,7 @@ export default function EmailDraftPanel({
         setBusy(false);
       }
     },
-    [dealId, reminderIds],
+    [dealId, reminderKey],
   );
 
   useEffect(() => {
@@ -63,6 +67,9 @@ export default function EmailDraftPanel({
       setError("Copy failed: select the text and copy it manually.");
     }
   }
+
+  // Anything still in square brackets (a placeholder or a masked value) must not reach the client unnoticed.
+  const placeholders = Array.from(new Set(`${subject}\n${body}`.match(/\[[^\]\n]{1,40}\]/g) ?? []));
 
   const mailto = draft?.to_email
     ? `mailto:${encodeURIComponent(draft.to_email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
@@ -103,6 +110,11 @@ export default function EmailDraftPanel({
               Message
               <textarea rows={12} value={body} onChange={(e) => setBody(e.target.value)} />
             </label>
+            {placeholders.length > 0 && (
+              <p className="small error" role="alert">
+                Replace {placeholders.join(", ")} before you send this email.
+              </p>
+            )}
 
             {draft.facts.length > 0 && (
               <section className="facts">
