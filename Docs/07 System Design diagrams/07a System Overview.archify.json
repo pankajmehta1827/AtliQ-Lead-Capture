@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AtliQ Lead Capture - System Overview",
+    "output": ".archify/architecture-atliq-system-20261011-012311/atliq-system.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "owner",
+      "type": "external",
+      "icon": "person",
+      "label": "Sales owner",
+      "sublabel": "browser",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        130,
+        64
+      ]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "React SPA",
+      "sublabel": "Vite build, 10 pages",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Conversation sources",
+      "sublabel": "email, meeting notes, LinkedIn",
+      "pos": [
+        580,
+        90
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI API",
+      "sublabel": "/api routers, access-code gate",
+      "pos": [
+        580,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "uvicorn"
+    },
+    {
+      "id": "worker",
+      "type": "messagebus",
+      "label": "Capture worker",
+      "sublabel": "LangGraph StateGraph",
+      "pos": [
+        900,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "asyncio task"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "LLM providers",
+      "sublabel": "Claude Haiku 5.5 + Groq",
+      "pos": [
+        1200,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "10 tables: CRM, drafts, audit",
+      "pos": [
+        580,
+        480
+      ],
+      "size": [
+        490,
+        64
+      ]
+    },
+    {
+      "id": "scheduler",
+      "type": "backend",
+      "label": "Reminder scheduler",
+      "sublabel": "scan every 30 min",
+      "pos": [
+        740,
+        640
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "asyncio task"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Railway service AtliQ-Lead-Capture + Postgres",
+      "wraps": [
+        "api",
+        "worker",
+        "db",
+        "scheduler"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "owner-spa",
+      "from": "owner",
+      "to": "spa",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "spa-api",
+      "from": "spa",
+      "to": "api",
+      "label": "REST + X-Access-Code",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sources-api",
+      "from": "sources",
+      "to": "api",
+      "label": "sync / paste",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "api-worker",
+      "from": "api",
+      "to": "worker",
+      "label": "enqueue item",
+      "variant": "dashed"
+    },
+    {
+      "id": "worker-llm",
+      "from": "worker",
+      "to": "llm",
+      "label": "structured JSON"
+    },
+    {
+      "id": "api-db",
+      "from": "api",
+      "to": "db",
+      "label": "confirm drafts",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "worker-db",
+      "from": "worker",
+      "to": "db",
+      "label": "drafts + audit",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "scheduler-db",
+      "from": "scheduler",
+      "to": "db",
+      "label": "reminders",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "api-llm",
+      "from": "api",
+      "to": "llm",
+      "label": "email drafts, Ask AI",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Capture path",
+      "items": [
+        "Items are queued, then the worker runs the LangGraph pipeline 5 at a time",
+        "Capture AI: Claude Haiku 5.5 (low effort); Groq gpt-oss-120b when LLM_PROVIDER=groq",
+        "Ask AI always runs on Groq"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Human review gate",
+      "items": [
+        "The AI only writes drafts; nothing reaches deals until the owner confirms",
+        "Preview (dry run) shows the exact CRM change before Save"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Guardrails",
+      "items": [
+        "Exclusion rules skip private threads and wipe the body",
+        "PII masking before any LLM call",
+        "Every action written to audit_log"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Deployment",
+      "items": [
+        "One Railway service from GitHub main (API + worker + SPA)",
+        "Managed Postgres; SQLite for local runs"
+      ]
+    }
+  ]
+}

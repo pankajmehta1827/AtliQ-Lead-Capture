@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Conversation to CRM Lifecycle",
+    "output": ".archify/lifecycle-item-draft-20261011-012311/item-draft-lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "main", "label": "Main path" },
+    { "id": "waiting", "label": "Back-off + preview" },
+    { "id": "terminal", "label": "Terminal exits" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "Queued", "sublabel": "source item", "lane": "main", "col": 0, "step": "01" },
+    { "id": "processing", "type": "active", "label": "Processing", "sublabel": "capture graph", "lane": "main", "col": 1, "step": "02" },
+    { "id": "processed", "type": "active", "label": "Processed", "sublabel": "draft created", "lane": "main", "col": 2, "step": "03" },
+    { "id": "pending", "type": "waiting", "label": "Draft pending", "sublabel": "review queue", "lane": "main", "col": 3, "step": "04" },
+    { "id": "confirmed", "type": "success", "label": "Confirmed", "sublabel": "written to CRM", "lane": "main", "col": 4, "step": "05" },
+    { "id": "backoff", "type": "waiting", "label": "Back-off", "sublabel": "retry-after", "lane": "waiting", "col": 1 },
+    { "id": "preview", "type": "decision", "label": "Preview", "sublabel": "dry-run diff", "lane": "waiting", "col": 3 },
+    { "id": "failed", "type": "failure", "label": "Failed", "sublabel": "3 attempts", "lane": "terminal", "col": 1 },
+    { "id": "skipped", "type": "neutral", "label": "Skipped", "sublabel": "body wiped", "lane": "terminal", "col": 2 },
+    { "id": "superseded", "type": "neutral", "label": "Superseded", "sublabel": "re-run", "lane": "terminal", "col": 3 },
+    { "id": "discarded", "type": "failure", "label": "Discarded", "sublabel": "owner reason", "lane": "terminal", "col": 4 }
+  ],
+  "transitions": [
+    { "from": "queued", "to": "processing" },
+    { "from": "processing", "to": "processed" },
+    { "from": "processed", "to": "pending" },
+    { "from": "pending", "to": "confirmed", "variant": "emphasis" },
+    { "from": "processing", "to": "backoff", "label": "error", "variant": "dashed" },
+    { "from": "backoff", "to": "queued", "label": "retry" },
+    { "from": "backoff", "to": "failed", "variant": "security" },
+    { "from": "processing", "to": "skipped", "label": "excluded", "variant": "security" },
+    { "from": "pending", "to": "preview", "label": "review" },
+    { "from": "preview", "to": "confirmed", "label": "save" },
+    { "from": "pending", "to": "superseded", "variant": "dashed" },
+    { "from": "pending", "to": "discarded", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Source item", "items": ["queued, processing, processed, skipped or failed", "Rate limits honour retry-after; 3 attempts max"] },
+    { "dot": "emerald", "title": "Draft", "items": ["pending until the owner acts", "confirmed writes deal, activity, reminders"] },
+    { "dot": "rose", "title": "Exits", "items": ["Discard keeps the reason for evals", "A re-run supersedes the old draft"] }
+  ]
+}
