@@ -14,6 +14,9 @@ Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 **Live demo:** https://atliq-lead-capture-production.up.railway.app (sign-in needs the team's access code; ask the
 project owner).
 
+**Demo video (about 5 minutes):** [AtliQ Lead Assistance Product Demo](Demo/AtliQ%20Lead%20Assistance%20Product%20Demo.mp4):
+the prototype capturing real scenarios from the golden dataset, how it stays grounded and safe, and the business case.
+
 | Layer | Tech |
 |---|---|
 | Frontend | React 18 + TypeScript (Vite) |
