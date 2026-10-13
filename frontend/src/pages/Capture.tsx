@@ -3,6 +3,15 @@ import { SourceItem, api } from "../api";
 
 type Items = { items: SourceItem[]; counts: Record<string, number> };
 
+/** Guess the channel from pasted text, so a sticky dropdown can't save an email as a meeting (or the reverse). */
+function detectChannel(text: string): "email" | "meeting" | "linkedin" | null {
+  const head = text.slice(0, 600);
+  if (/^\s*(\*\*)?From:/im.test(head)) return "email";
+  if (/linkedin/i.test(head.split("\n").slice(0, 3).join(" "))) return "linkedin";
+  if (/^\s*(\*\*)?Attendees:|Attendees:\*\*|^\s*#?\s*(internal|meeting)/im.test(head)) return "meeting";
+  return null;
+}
+
 export default function Capture({ onChange }: { onChange: () => void }) {
   const [data, setData] = useState<Items>({ items: [], counts: {} });
   const [rerun, setRerun] = useState<{ rules_drafts: number; queued: number; llm_enabled: boolean } | null>(null);
@@ -51,7 +60,7 @@ export default function Capture({ onChange }: { onChange: () => void }) {
     e.preventDefault();
     run(
       () =>
-        api("/api/capture", {
+        api<{ item: SourceItem; created: boolean }>("/api/capture", {
           method: "POST",
           json: {
             channel: form.channel,
@@ -61,9 +70,11 @@ export default function Capture({ onChange }: { onChange: () => void }) {
             contact_email: form.contact_email || null,
           },
         }),
-      () => {
-        setForm({ ...form, text: "", subject: "" });
-        return "Captured. The draft will appear in your review queue shortly.";
+      (r) => {
+        setForm({ channel: "email", subject: "", contact_name: "", contact_email: "", text: "" });
+        return r.created
+          ? `Captured as item #${r.item.id} (${r.item.channel}). The draft will appear in your review queue shortly.`
+          : `Already captured as item #${r.item.id} (${r.item.status}): the same text was pasted before, so nothing new was added.`;
       },
     );
   };
@@ -171,7 +182,18 @@ export default function Capture({ onChange }: { onChange: () => void }) {
             </label>
             <label className="span-2">
               Conversation
-              <textarea rows={9} required minLength={10} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} />
+              <textarea
+                rows={9}
+                required
+                minLength={10}
+                value={form.text}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  // a fresh paste picks its own channel; after that the dropdown is the user's to change
+                  const guess = !form.text.trim() ? detectChannel(text) : null;
+                  setForm({ ...form, text, channel: guess ?? form.channel });
+                }}
+              />
             </label>
           </div>
           <button className="primary" disabled={busy || form.text.length < 10}>
