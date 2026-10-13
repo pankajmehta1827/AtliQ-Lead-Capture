@@ -11,8 +11,8 @@ follow-up signals, and shows each deal owner what to chase next, with live timer
 
 Built from the *AtliQ Lead Capture and Follow-up Assistant: AI PRD v1.0*.
 
-**Live demo:** https://atliq-lead-capture-production.up.railway.app (sign-in needs the team's access code; ask the
-project owner).
+**Live demo:** https://atliq-lead-capture-production.up.railway.app/dashboard: choose a seller and enter the
+access code **`Lead@1987`** (a demo-only code, changed after the review period).
 
 **Demo video (about 5 minutes):** [AtliQ Lead Assistance Product Demo](Demo/AtliQ%20Lead%20Assistance%20Product%20Demo.mp4):
 the prototype capturing real scenarios from the golden dataset, how it stays grounded and safe, and the business case.
