@@ -168,7 +168,7 @@ PostgreSQL). It redeploys from `main`. To set up a new environment:
 3. Set these variables on the app service:
    - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
    - `GROQ_API_KEY=<this project's key>`
-   - `APP_ACCESS_CODE=Lead@1234. Required on a public URL- https://atliq-lead-capture-production-8bcd.up.railway.app/capture
+   - `APP_ACCESS_CODE=Lead@1987. Required on a public URL- https://atliq-lead-capture-production-8bcd.up.railway.app/capture
    - Optional: `GROQ_MODEL`, `REFERENCE_DATE=2026-07-10` (dataset demo), `SELLERS`, `PROCESSING_ENABLED`
 4. **Settings → Networking → Generate Domain.**
 
