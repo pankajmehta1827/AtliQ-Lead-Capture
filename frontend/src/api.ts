@@ -101,6 +101,7 @@ export type Reminder = {
 export type AppConfig = {
   users: string[];
   requires_access_code: boolean;
+  default_user: string | null;
   llm_mode: "llm" | "rules";
   today: string;
   processing_enabled: boolean;

@@ -28,6 +28,7 @@ type NavItem = { to: string; label: string; icon: string; hint: string; count?: 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [user, setUser] = useState<string | null>(getSession()?.user ?? null);
+  const [picking, setPicking] = useState(false); // the user clicked Switch: show the seller picker
   const [counts, setCounts] = useState<Counts>({ drafts: 0, due: 0, leads: 0 });
 
   useEffect(() => {
@@ -59,8 +60,17 @@ export default function App() {
     return () => clearInterval(t);
   }, [refreshCounts]);
 
-  if (!config) return <div className="boot">Connecting to the assistant…</div>;
-  if (!user) return <Login config={config} onLogin={(u) => setUser(u)} />;
+  // Open demo (no access code): skip the sign-in page and open as the default seller; Switch still picks another.
+  const autoUser = config && !config.requires_access_code && !picking ? config.default_user : null;
+  useEffect(() => {
+    if (!user && autoUser) {
+      setSession({ user: autoUser, code: "" });
+      setUser(autoUser);
+    }
+  }, [user, autoUser]);
+
+  if (!config || (!user && autoUser)) return <div className="boot">Connecting to the assistant…</div>;
+  if (!user) return <Login config={config} onLogin={(u) => { setPicking(false); setUser(u); }} />;
 
   // Ordered the way a seller works: act on today's work, bring in new conversations, look up deals,
   // then insight and admin. Badges sit on the page where the work is done.
@@ -143,6 +153,7 @@ export default function App() {
             className="link small"
             onClick={() => {
               setSession(null);
+              setPicking(true);
               setUser(null);
             }}
           >

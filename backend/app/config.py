@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # Domain settings
     internal_domain: str = "atliq.com"
     sellers: str = "Bhavin,Dhaval,Karandeep,Jay"  # users who own deals
+    default_user: str = "Jay"  # with no access code, the app opens straight on the dashboard as this seller
     inactive_days: int = 14  # FR-7 / dashboard flag
     proposal_unanswered_days: int = 7  # reminder trigger
     confidence_threshold: float = 0.7  # below this a draft is marked "needs review"
