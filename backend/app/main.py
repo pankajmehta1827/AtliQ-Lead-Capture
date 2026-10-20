@@ -81,4 +81,5 @@ if STATIC_DIR.exists():
         candidate = (STATIC_DIR / path).resolve()
         if path and candidate.is_file() and STATIC_DIR in candidate.parents:
             return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html")
+        # index.html names the current hashed bundle: never let a browser reuse an old copy after a deploy
+        return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
